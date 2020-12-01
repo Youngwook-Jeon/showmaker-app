@@ -1,10 +1,9 @@
 package com.showmaker.showmaker.user;
 
 import com.showmaker.showmaker.error.NotFoundException;
+import com.showmaker.showmaker.user.dto.UserUpdateDTO;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -39,5 +38,11 @@ public class UserService {
             throw new NotFoundException(username + " not found");
         }
         return inDB;
+    }
+
+    public User update(long id, UserUpdateDTO userUpdateDto) {
+        User inDB = userRepository.getOne(id);
+        inDB.setDisplayName(userUpdateDto.getDisplayName());
+        return userRepository.save(inDB);
     }
 }

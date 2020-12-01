@@ -4,11 +4,12 @@ import com.showmaker.showmaker.error.ApiError;
 import com.showmaker.showmaker.shared.CurrentUser;
 import com.showmaker.showmaker.shared.GenericResponse;
 import com.showmaker.showmaker.user.dto.UserDTO;
+import com.showmaker.showmaker.user.dto.UserUpdateDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -42,6 +43,13 @@ public class UserController {
     UserDTO getUserByName(@PathVariable String username) {
         User user = userService.getByUsername(username);
         return new UserDTO(user);
+    }
+
+    @PutMapping("/users/{id:[0-9]+}")
+    @PreAuthorize("#id == principal.id")
+    UserDTO updateUser(@PathVariable long id, @RequestBody(required = false) UserUpdateDTO userUpdateDto) {
+        User updatedUser = userService.update(id, userUpdateDto);
+        return new UserDTO(updatedUser);
     }
 
     @ExceptionHandler({MethodArgumentNotValidException.class})
