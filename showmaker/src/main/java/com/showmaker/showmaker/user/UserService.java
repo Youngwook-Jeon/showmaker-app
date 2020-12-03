@@ -1,12 +1,14 @@
 package com.showmaker.showmaker.user;
 
 import com.showmaker.showmaker.error.NotFoundException;
+import com.showmaker.showmaker.file.FileService;
 import com.showmaker.showmaker.user.dto.UserUpdateDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.util.UUID;
 
 @Service
@@ -14,11 +16,14 @@ public class UserService {
 
     UserRepository userRepository;
     PasswordEncoder passwordEncoder;
+    FileService fileService;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository,
+                       PasswordEncoder passwordEncoder, FileService fileService) {
         super();
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.fileService = fileService;
     }
 
     public User save(User user) {
@@ -45,8 +50,16 @@ public class UserService {
     public User update(long id, UserUpdateDTO userUpdateDto) {
         User inDB = userRepository.getOne(id);
         inDB.setDisplayName(userUpdateDto.getDisplayName());
-        String savedImageName = inDB.getUsername() + UUID.randomUUID().toString().replaceAll("-", "");
-        inDB.setImage(savedImageName);
+        if (userUpdateDto.getImage() != null) {
+            String savedImageName;
+            try {
+                savedImageName = fileService.saveProfileImage(userUpdateDto.getImage());
+                inDB.setImage(savedImageName);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
         return userRepository.save(inDB);
     }
 }

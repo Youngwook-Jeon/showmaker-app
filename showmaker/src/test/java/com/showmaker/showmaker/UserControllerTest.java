@@ -1,5 +1,6 @@
 package com.showmaker.showmaker;
 
+import com.showmaker.showmaker.configuration.AppConfiguration;
 import com.showmaker.showmaker.error.ApiError;
 import com.showmaker.showmaker.shared.GenericResponse;
 import com.showmaker.showmaker.user.User;
@@ -8,6 +9,7 @@ import com.showmaker.showmaker.user.UserService;
 import com.showmaker.showmaker.user.dto.UserDTO;
 import com.showmaker.showmaker.user.dto.UserUpdateDTO;
 import org.apache.commons.io.FileUtils;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -24,6 +26,7 @@ import org.springframework.http.client.support.BasicAuthenticationInterceptor;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Base64;
 import java.util.List;
@@ -49,10 +52,19 @@ public class UserControllerTest {
     @Autowired
     UserService userService;
 
+    @Autowired
+    AppConfiguration appConfiguration;
+
     @Before
     public void cleanup() {
         userRepository.deleteAll();
         testRestTemplate.getRestTemplate().getInterceptors().clear();
+    }
+
+    @After
+    public void cleanDirectory() throws IOException {
+        FileUtils.cleanDirectory(new File(appConfiguration.getFullProfileImagesPath()));
+        FileUtils.cleanDirectory(new File(appConfiguration.getFullAttachmentsPath()));
     }
 
     @Test
@@ -439,16 +451,40 @@ public class UserControllerTest {
         authenticate(user.getUsername());
 
         ClassPathResource imageResource = new ClassPathResource("profile-icon.png");
-
         UserUpdateDTO userUpdateDto = createValidUserUpdateDto();
-        byte[] imageArr = FileUtils.readFileToByteArray(imageResource.getFile());
-        String imageString = Base64.getEncoder().encodeToString(imageArr);
+        String imageString = readFileToBase64("profile-icon.png");
         userUpdateDto.setImage(imageString);
 
         HttpEntity<UserUpdateDTO> requestEntity = new HttpEntity<>(userUpdateDto);
         ResponseEntity<UserDTO> response = putUser(user.getId(), requestEntity, UserDTO.class);
 
         assertThat(response.getBody().getImage()).isNotEqualTo("profile-image.png");
+    }
+
+    @Test
+    public void putUser_withValidRequestBodyWithSupportedImageFromAuthorizedUser_imageIsStoredUnderProfileFolder() throws IOException {
+        User user = userService.save(TestUtil.createValidUser("user1"));
+        authenticate(user.getUsername());
+
+        ClassPathResource imageResource = new ClassPathResource("profile-icon.png");
+        UserUpdateDTO userUpdateDto = createValidUserUpdateDto();
+        String imageString = readFileToBase64("profile-icon.png");
+        userUpdateDto.setImage(imageString);
+
+        HttpEntity<UserUpdateDTO> requestEntity = new HttpEntity<>(userUpdateDto);
+        ResponseEntity<UserDTO> response = putUser(user.getId(), requestEntity, UserDTO.class);
+
+        String storedImageName = response.getBody().getImage();
+        String profilePicturePath = appConfiguration.getFullProfileImagesPath() + "/" + storedImageName;
+        File storedImage = new File(profilePicturePath);
+        assertThat(storedImage.exists()).isTrue();
+    }
+
+    private String readFileToBase64(String fileName) throws IOException{
+        ClassPathResource imageResource = new ClassPathResource(fileName);
+        byte[] imageArr = FileUtils.readFileToByteArray(imageResource.getFile());
+        String imageString = Base64.getEncoder().encodeToString(imageArr);
+        return imageString;
     }
 
     private UserUpdateDTO createValidUserUpdateDto() {
