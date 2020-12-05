@@ -34,7 +34,12 @@ const mockFailGetUser = {
 
 const mockFailUpdateUser = {
     response: {
-        data: {}
+        data: {
+            validationErrors: {
+                displayName: 'It must have minimum 4 and maximum 255 characters',
+                image: 'Only PNG and JPG files are allowed'
+            }
+        }
     }
 };
 
@@ -386,6 +391,76 @@ describe('UserPage', () => {
             const image = container.querySelector('img');
             expect(image.src).toContain('/images/profile/profile1-update.png');
         });
+
+        it('displays validation error for displayName when update api fails', async () => {
+            const { queryByText } = await setupForEdit();
+            apiCalls.updateUser = jest.fn().mockRejectedValue(mockFailUpdateUser);
+
+            const saveButton = queryByText('Save');
+            fireEvent.click(saveButton);
+            await waitForDomChange();
+
+            const errorMessage = queryByText('It must have minimum 4 and maximum 255 characters');
+            expect(errorMessage).toBeInTheDocument();
+        });
+
+        it('displays validation error for file when update api fails', async () => {
+            const { queryByText } = await setupForEdit();
+            apiCalls.updateUser = jest.fn().mockRejectedValue(mockFailUpdateUser);
+
+            const saveButton = queryByText('Save');
+            fireEvent.click(saveButton);
+            await waitForDomChange();
+
+            const errorMessage = queryByText('Only PNG and JPG files are allowed');
+            expect(errorMessage).toBeInTheDocument();
+        });
+
+        it('removes validation error for displayName when user changes the displayName', async () => {
+            const { queryByText, container } = await setupForEdit();
+            apiCalls.updateUser = jest.fn().mockRejectedValue(mockFailUpdateUser);
+
+            const saveButton = queryByText('Save');
+            fireEvent.click(saveButton);
+            await waitForDomChange();
+            const displayInput = container.querySelectorAll('input')[0];
+            fireEvent.change(displayInput, { target: { value: 'new-display-name' } });
+
+            const errorMessage = queryByText('It must have minimum 4 and maximum 255 characters');
+            expect(errorMessage).not.toBeInTheDocument();
+        });
+
+        it('removes validation error for file when user changes the file', async () => {
+            const { queryByText, container } = await setupForEdit();
+            apiCalls.updateUser = jest.fn().mockRejectedValue(mockFailUpdateUser);
+
+            const saveButton = queryByText('Save');
+            fireEvent.click(saveButton);
+            await waitForDomChange();
+            const fileInput = container.querySelectorAll('input')[1];
+            const newFile = new File(['another content'], 'example2.png', {
+                type: 'image/png'
+            });
+            fireEvent.change(fileInput, { target: { files: [newFile] } });
+            await waitForDomChange();
+
+            const errorMessage = queryByText('Only PNG and JPG files are allowed');
+            expect(errorMessage).not.toBeInTheDocument();
+        });
+
+        it('removes validation error if user cancels', async () => {
+            const { queryByText } = await setupForEdit();
+            apiCalls.updateUser = jest.fn().mockRejectedValue(mockFailUpdateUser);
+
+            const saveButton = queryByText('Save');
+            fireEvent.click(saveButton);
+            await waitForDomChange();
+            fireEvent.click(queryByText('Cancel'));
+
+            fireEvent.click(queryByText('Edit'));
+            const errorMessage = queryByText('It must have minimum 4 and maximum 255 characters');
+            expect(errorMessage).not.toBeInTheDocument();
+        })
     });
 });
 
