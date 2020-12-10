@@ -3,8 +3,10 @@ package com.showmaker.showmaker;
 import com.showmaker.showmaker.error.ApiError;
 import com.showmaker.showmaker.show.Show;
 import com.showmaker.showmaker.show.ShowRepository;
+import com.showmaker.showmaker.user.User;
 import com.showmaker.showmaker.user.UserRepository;
 import com.showmaker.showmaker.user.UserService;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -17,6 +19,9 @@ import org.springframework.http.client.support.BasicAuthenticationInterceptor;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.PersistenceUnit;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -42,11 +47,19 @@ public class ShowControllerTest {
     @Autowired
     ShowRepository showRepository;
 
+    @PersistenceUnit
+    private EntityManagerFactory entityManagerFactory;
+
     @Before
     public void cleanup() {
         showRepository.deleteAll();
         userRepository.deleteAll();
         testRestTemplate.getRestTemplate().getInterceptors().clear();
+    }
+
+    @After
+    public void cleanupAfter() {
+        showRepository.deleteAll();
     }
 
     @Test
@@ -145,6 +158,31 @@ public class ShowControllerTest {
         ResponseEntity<ApiError> response = postShow(show, ApiError.class);
         Map<String, String> validationErrors = response.getBody().getValidationErrors();
         assertThat(validationErrors.get("content")).isNotNull();
+    }
+
+    @Test
+    public void postShow_whenShowIsValidAndUserIsAuthorized_showSavedWithAuthenticatedUser() {
+        userService.save(TestUtil.createValidUser("user1"));
+        authenticate("user1");
+        Show show = TestUtil.createValidShow();
+        postShow(show, Object.class);
+
+        Show inDB = showRepository.findAll().get(0);
+
+        assertThat(inDB.getUser().getUsername()).isEqualTo("user1");
+    }
+
+    @Test
+    public void postShow_whenShowIsValidAndUserIsAuthorized_showCanBeAccessedFromUserEntity() {
+        User user = userService.save(TestUtil.createValidUser("user1"));
+        authenticate("user1");
+        Show show = TestUtil.createValidShow();
+        postShow(show, Object.class);
+
+        EntityManager entityManager = entityManagerFactory.createEntityManager();
+
+        User inDBUser = entityManager.find(User.class, user.getId());
+        assertThat(inDBUser.getShows().size()).isEqualTo(1);
     }
 
     private <T> ResponseEntity<T> postShow(Show show, Class<T> responseType) {

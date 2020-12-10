@@ -1,5 +1,6 @@
 package com.showmaker.showmaker.show;
 
+import com.showmaker.showmaker.user.User;
 import lombok.Data;
 
 import javax.persistence.*;
@@ -21,4 +22,7 @@ public class Show {
     private String content;
 
     private LocalDateTime timestamp;
+
+    @ManyToOne
+    private User user;
 }

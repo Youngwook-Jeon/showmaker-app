@@ -1,5 +1,6 @@
 package com.showmaker.showmaker.show;
 
+import com.showmaker.showmaker.user.User;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -14,8 +15,9 @@ public class ShowService {
         this.showRepository = showRepository;
     }
 
-    public void save(Show show) {
+    public void save(User user, Show show) {
         show.setTimestamp(LocalDateTime.now());
+        show.setUser(user);
         showRepository.save(show);
     }
 }

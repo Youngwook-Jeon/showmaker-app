@@ -1,5 +1,7 @@
 package com.showmaker.showmaker.show;
 
+import com.showmaker.showmaker.shared.CurrentUser;
+import com.showmaker.showmaker.user.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -16,7 +18,7 @@ public class ShowController {
     ShowService showService;
 
     @PostMapping("/shows")
-    void createShow(@Valid @RequestBody Show show) {
-        showService.save(show);
+    void createShow(@Valid @RequestBody Show show, @CurrentUser User user) {
+        showService.save(user, show);
     }
 }
