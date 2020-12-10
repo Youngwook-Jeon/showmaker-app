@@ -1,5 +1,6 @@
 package com.showmaker.showmaker;
 
+import com.showmaker.showmaker.show.Show;
 import com.showmaker.showmaker.user.User;
 
 public class TestUtil {
@@ -17,5 +18,11 @@ public class TestUtil {
         User user = createValidUser();
         user.setUsername(username);
         return user;
+    }
+
+    public static Show createValidShow() {
+        Show show = new Show();
+        show.setContent("test content for the test show");
+        return show;
     }
 }
