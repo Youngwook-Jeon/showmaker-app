@@ -43,6 +43,27 @@ describe('HomePage', () => {
             const homePageDiv = queryByTestId('homepage');
             expect(homePageDiv).toBeInTheDocument();
         });
+
+        it('displays show submit when user logged in', () => {
+            const { container } = setup();
+            const textArea = container.querySelector('textarea');
+            expect(textArea).toBeInTheDocument();
+        });
+
+        it('does not display show submit when user not logged in', () => {
+            const notLoggedInState = {
+                id: 0,
+                username: '',
+                displayName: '',
+                password: '',
+                image: '',
+                isLoggedIn: false
+            };
+
+            const { container } = setup(notLoggedInState);
+            const textArea = container.querySelector('textarea');
+            expect(textArea).not.toBeInTheDocument();
+        });
     });
 });
 

@@ -1,9 +1,10 @@
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react';
+import { render, fireEvent, waitForDomChange } from '@testing-library/react';
 import ShowSubmit from './ShowSubmit';
 import { Provider } from 'react-redux';
 import { createStore } from 'redux';
 import authReducer from '../redux/authReducer';
+import * as apiCalls from '../api/apiCalls';
 
 const defaultState = {
     id: 1,
@@ -95,6 +96,254 @@ describe('ShowSubmit', () => {
             const cancelButton = queryByText('Cancel');
             fireEvent.click(cancelButton);
             expect(queryByText('Cancel')).not.toBeInTheDocument();
+        });
+
+        it('calls postShow with show request object when clicking the Make button', () => {
+            const { container, queryByText } = setup();
+            const textArea = container.querySelector('textarea');
+            fireEvent.focus(textArea);
+            fireEvent.change(textArea, { target: { value: 'Test show content' } });
+
+            const makeButton = queryByText('Make');
+            apiCalls.postShow = jest.fn().mockResolvedValue({});
+            fireEvent.click(makeButton);
+
+            expect(apiCalls.postShow).toHaveBeenCalledWith({
+                content: 'Test show content'
+            });
+        });
+
+        it('returns back to unfocused state after successful postShow action', async () => {
+            const { container, queryByText } = setup();
+            const textArea = container.querySelector('textarea');
+            fireEvent.focus(textArea);
+            fireEvent.change(textArea, { target: { value: 'Test show content' } });
+
+            const makeButton = queryByText('Make');
+            apiCalls.postShow = jest.fn().mockResolvedValue({});
+            fireEvent.click(makeButton);
+
+            await waitForDomChange();
+            expect(queryByText('Make')).not.toBeInTheDocument();
+        });
+
+        it('clears content after successful postShow action', async () => {
+            const { container, queryByText } = setup();
+            const textArea = container.querySelector('textarea');
+            fireEvent.focus(textArea);
+            fireEvent.change(textArea, { target: { value: 'Test show content' } });
+
+            const makeButton = queryByText('Make');
+            apiCalls.postShow = jest.fn().mockResolvedValue({});
+            fireEvent.click(makeButton);
+
+            await waitForDomChange();
+            expect(queryByText('Test show content')).not.toBeInTheDocument();
+        });
+
+        it('clears content after clicking cancel', () => {
+            const { container, queryByText } = setup();
+            const textArea = container.querySelector('textarea');
+            fireEvent.focus(textArea);
+            fireEvent.change(textArea, { target: { value: 'Test show content' } });
+
+            fireEvent.click(queryByText('Cancel'));
+            expect(queryByText('Test show content')).not.toBeInTheDocument();
+        });
+
+        it('disables Make button when there is postShow api call', async () => {
+            const { container, queryByText } = setup();
+            const textArea = container.querySelector('textarea');
+            fireEvent.focus(textArea);
+            fireEvent.change(textArea, { target: { value: 'Test show content' } });
+
+            const makeButton = queryByText('Make');
+            const mockFunction = jest.fn().mockImplementation(() => {
+                return new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        resolve({});
+                    }, 300);
+                });
+            });
+            apiCalls.postShow = mockFunction;
+            fireEvent.click(makeButton);
+            fireEvent.click(makeButton);
+
+            expect(mockFunction).toHaveBeenCalledTimes(1);
+        });
+
+        it('disables Cancel button when there is postShow api call', async () => {
+            const { container, queryByText } = setup();
+            const textArea = container.querySelector('textarea');
+            fireEvent.focus(textArea);
+            fireEvent.change(textArea, { target: { value: 'Test show content' } });
+
+            const makeButton = queryByText('Make');
+            const mockFunction = jest.fn().mockImplementation(() => {
+                return new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        resolve({});
+                    }, 300);
+                });
+            });
+            apiCalls.postShow = mockFunction;
+            fireEvent.click(makeButton);
+            const cancelButton = queryByText('Cancel');
+
+            expect(cancelButton).toBeDisabled();
+        });
+
+        it('displays spinner when there is postShow api call', async () => {
+            const { container, queryByText } = setup();
+            const textArea = container.querySelector('textarea');
+            fireEvent.focus(textArea);
+            fireEvent.change(textArea, { target: { value: 'Test show content' } });
+
+            const makeButton = queryByText('Make');
+            const mockFunction = jest.fn().mockImplementation(() => {
+                return new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        resolve({});
+                    }, 300);
+                });
+            });
+            apiCalls.postShow = mockFunction;
+            fireEvent.click(makeButton);
+
+            expect(queryByText('Now Loading...')).toBeInTheDocument();
+        });
+
+        it('enables Make button when postShow api call fails', async () => {
+            const { container, queryByText } = setup();
+            const textArea = container.querySelector('textarea');
+            fireEvent.focus(textArea);
+            fireEvent.change(textArea, { target: { value: 'Test show content' } });
+
+            const makeButton = queryByText('Make');
+            const mockFunction = jest.fn().mockRejectedValueOnce({
+                response: {
+                    data: {
+                        validationErrors: {
+                            content: 'It must have minimum 10 and maximum 5000 characters'
+                        }
+                    }
+                }
+            });
+            apiCalls.postShow = mockFunction;
+            fireEvent.click(makeButton);
+            await waitForDomChange();
+
+            expect(queryByText('Make')).not.toBeDisabled();
+        });
+
+        it('enables Cancel button when postShow api call fails', async () => {
+            const { container, queryByText } = setup();
+            const textArea = container.querySelector('textarea');
+            fireEvent.focus(textArea);
+            fireEvent.change(textArea, { target: { value: 'Test show content' } });
+
+            const makeButton = queryByText('Make');
+            const mockFunction = jest.fn().mockRejectedValueOnce({
+                response: {
+                    data: {
+                        validationErrors: {
+                            content: 'It must have minimum 10 and maximum 5000 characters'
+                        }
+                    }
+                }
+            });
+            apiCalls.postShow = mockFunction;
+            fireEvent.click(makeButton);
+            await waitForDomChange();
+
+            expect(queryByText('Cancel')).not.toBeDisabled();
+        });
+
+        it('enables Make button after successful postShow action', async () => {
+            const { container, queryByText } = setup();
+            const textArea = container.querySelector('textarea');
+            fireEvent.focus(textArea);
+            fireEvent.change(textArea, { target: { value: 'Test show content' } });
+
+            const makeButton = queryByText('Make');
+            apiCalls.postShow = jest.fn().mockResolvedValue({});
+            fireEvent.click(makeButton);
+
+            await waitForDomChange();
+
+            fireEvent.focus(textArea);
+            expect(queryByText('Make')).not.toBeDisabled();
+        });
+
+        it('displays validation error for content', async () => {
+            const { container, queryByText } = setup();
+            const textArea = container.querySelector('textarea');
+            fireEvent.focus(textArea);
+            fireEvent.change(textArea, { target: { value: 'Test show content' } });
+
+            const makeButton = queryByText('Make');
+            const mockFunction = jest.fn().mockRejectedValueOnce({
+                response: {
+                    data: {
+                        validationErrors: {
+                            content: 'It must have minimum 10 and maximum 5000 characters'
+                        }
+                    }
+                }
+            });
+            apiCalls.postShow = mockFunction;
+            fireEvent.click(makeButton);
+            await waitForDomChange();
+
+            expect(queryByText('It must have minimum 10 and maximum 5000 characters')).toBeInTheDocument();
+        });
+
+        it('clears validation error after clicking Cancel button', async () => {
+            const { container, queryByText } = setup();
+            const textArea = container.querySelector('textarea');
+            fireEvent.focus(textArea);
+            fireEvent.change(textArea, { target: { value: 'Test show content' } });
+
+            const makeButton = queryByText('Make');
+            const mockFunction = jest.fn().mockRejectedValueOnce({
+                response: {
+                    data: {
+                        validationErrors: {
+                            content: 'It must have minimum 10 and maximum 5000 characters'
+                        }
+                    }
+                }
+            });
+            apiCalls.postShow = mockFunction;
+            fireEvent.click(makeButton);
+            await waitForDomChange();
+            fireEvent.click(queryByText('Cancel'));
+
+            expect(queryByText('It must have minimum 10 and maximum 5000 characters')).not.toBeInTheDocument();
+        });
+
+        it('clears validation error after content is changed', async () => {
+            const { container, queryByText } = setup();
+            const textArea = container.querySelector('textarea');
+            fireEvent.focus(textArea);
+            fireEvent.change(textArea, { target: { value: 'Test show content' } });
+
+            const makeButton = queryByText('Make');
+            const mockFunction = jest.fn().mockRejectedValueOnce({
+                response: {
+                    data: {
+                        validationErrors: {
+                            content: 'It must have minimum 10 and maximum 5000 characters'
+                        }
+                    }
+                }
+            });
+            apiCalls.postShow = mockFunction;
+            fireEvent.click(makeButton);
+            await waitForDomChange();
+            fireEvent.change(textArea, { target: { value: 'Test show content' } });
+
+            expect(queryByText('It must have minimum 10 and maximum 5000 characters')).not.toBeInTheDocument();
         });
     });
 });

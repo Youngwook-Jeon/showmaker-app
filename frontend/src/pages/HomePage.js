@@ -1,6 +1,7 @@
 import React from 'react';
 import UserList from '../components/UserList';
 import ShowSubmit from '../components/ShowSubmit';
+import { connect } from 'react-redux';
 
 class HomePage extends React.Component {
     render() {
@@ -8,7 +9,7 @@ class HomePage extends React.Component {
             <div data-testid="homepage" >
                 <div className="row">
                     <div className="col-8">
-                        <ShowSubmit />
+                        {this.props.loggedInUser.isLoggedIn && <ShowSubmit />}
                     </div>
                     <div className="col-4">
                         <UserList />
@@ -19,4 +20,10 @@ class HomePage extends React.Component {
     }
 }
 
-export default HomePage;
+const mapStateToProps = (state) => {
+    return {
+        loggedInUser: state
+    };
+};
+
+export default connect(mapStateToProps)(HomePage);
