@@ -1,12 +1,12 @@
 package com.showmaker.showmaker.show;
 
 import com.showmaker.showmaker.shared.CurrentUser;
+import com.showmaker.showmaker.show.vm.ShowVM;
 import com.showmaker.showmaker.user.User;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 
@@ -18,7 +18,17 @@ public class ShowController {
     ShowService showService;
 
     @PostMapping("/shows")
-    void createShow(@Valid @RequestBody Show show, @CurrentUser User user) {
-        showService.save(user, show);
+    ShowVM createShow(@Valid @RequestBody Show show, @CurrentUser User user) {
+        return new ShowVM(showService.save(user, show));
+    }
+
+    @GetMapping("/shows")
+    Page<ShowVM> getAllShows(Pageable pageable) {
+        return showService.getAllShows(pageable).map(ShowVM::new);
+    }
+
+    @GetMapping("/users/{username}/shows")
+    Page<ShowVM> getShowsOfUser(@PathVariable String username, Pageable pageable) {
+        return showService.getShowsOfUser(username, pageable).map(ShowVM::new);
     }
 }

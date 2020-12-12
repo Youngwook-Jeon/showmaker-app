@@ -2,14 +2,13 @@ package com.showmaker.showmaker.user;
 
 import com.showmaker.showmaker.error.NotFoundException;
 import com.showmaker.showmaker.file.FileService;
-import com.showmaker.showmaker.user.dto.UserUpdateDTO;
+import com.showmaker.showmaker.user.vm.UserUpdateVM;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.UUID;
 
 @Service
 public class UserService {
@@ -47,13 +46,13 @@ public class UserService {
         return inDB;
     }
 
-    public User update(long id, UserUpdateDTO userUpdateDto) {
+    public User update(long id, UserUpdateVM userUpdateVM) {
         User inDB = userRepository.getOne(id);
-        inDB.setDisplayName(userUpdateDto.getDisplayName());
-        if (userUpdateDto.getImage() != null) {
+        inDB.setDisplayName(userUpdateVM.getDisplayName());
+        if (userUpdateVM.getImage() != null) {
             String savedImageName;
             try {
-                savedImageName = fileService.saveProfileImage(userUpdateDto.getImage());
+                savedImageName = fileService.saveProfileImage(userUpdateVM.getImage());
                 fileService.deleteProfileImage(inDB.getImage());
                 inDB.setImage(savedImageName);
             } catch (IOException e) {

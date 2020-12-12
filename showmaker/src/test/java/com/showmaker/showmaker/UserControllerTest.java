@@ -6,8 +6,8 @@ import com.showmaker.showmaker.shared.GenericResponse;
 import com.showmaker.showmaker.user.User;
 import com.showmaker.showmaker.user.UserRepository;
 import com.showmaker.showmaker.user.UserService;
-import com.showmaker.showmaker.user.dto.UserDTO;
-import com.showmaker.showmaker.user.dto.UserUpdateDTO;
+import com.showmaker.showmaker.user.vm.UserVM;
+import com.showmaker.showmaker.user.vm.UserUpdateVM;
 import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -413,9 +413,9 @@ public class UserControllerTest {
     public void putUser_whenValidRequestBodyFromAuthorizedUser_receiveOk() {
         User user = userService.save(TestUtil.createValidUser("user1"));
         authenticate(user.getUsername());
-        UserUpdateDTO userUpdateDto = createValidUserUpdateDto();
+        UserUpdateVM userUpdateVM = createValidUserUpdateVM();
 
-        HttpEntity<UserUpdateDTO> requestEntity = new HttpEntity<>(userUpdateDto);
+        HttpEntity<UserUpdateVM> requestEntity = new HttpEntity<>(userUpdateVM);
         ResponseEntity<Object> response = putUser(user.getId(), requestEntity, Object.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
@@ -424,39 +424,39 @@ public class UserControllerTest {
     public void putUser_whenValidRequestBodyFromAuthorizedUser_displayNameUpdated() {
         User user = userService.save(TestUtil.createValidUser("user1"));
         authenticate(user.getUsername());
-        UserUpdateDTO userUpdateDto = createValidUserUpdateDto();
+        UserUpdateVM userUpdateVM = createValidUserUpdateVM();
 
-        HttpEntity<UserUpdateDTO> requestEntity = new HttpEntity<>(userUpdateDto);
+        HttpEntity<UserUpdateVM> requestEntity = new HttpEntity<>(userUpdateVM);
         putUser(user.getId(), requestEntity, Object.class);
 
         User userInDB = userRepository.findByUsername("user1");
-        assertThat(userInDB.getDisplayName()).isEqualTo(userUpdateDto.getDisplayName());
+        assertThat(userInDB.getDisplayName()).isEqualTo(userUpdateVM.getDisplayName());
     }
 
     @Test
-    public void putUser_whenValidRequestBodyFromAuthorizedUser_receiveUserDtoWithUpdatedDisplayName() {
+    public void putUser_whenValidRequestBodyFromAuthorizedUser_receiveUserVMWithUpdatedDisplayName() {
         User user = userService.save(TestUtil.createValidUser("user1"));
         authenticate(user.getUsername());
-        UserUpdateDTO userUpdateDto = createValidUserUpdateDto();
+        UserUpdateVM userUpdateVM = createValidUserUpdateVM();
 
-        HttpEntity<UserUpdateDTO> requestEntity = new HttpEntity<>(userUpdateDto);
-        ResponseEntity<UserDTO> response = putUser(user.getId(), requestEntity, UserDTO.class);
+        HttpEntity<UserUpdateVM> requestEntity = new HttpEntity<>(userUpdateVM);
+        ResponseEntity<UserVM> response = putUser(user.getId(), requestEntity, UserVM.class);
 
-        assertThat(response.getBody().getDisplayName()).isEqualTo(userUpdateDto.getDisplayName());
+        assertThat(response.getBody().getDisplayName()).isEqualTo(userUpdateVM.getDisplayName());
     }
 
     @Test
-    public void putUser_withValidRequestBodyWithSupportedImageFromAuthorizedUser_receiveUserDTOWithRandomImageName() throws IOException {
+    public void putUser_withValidRequestBodyWithSupportedImageFromAuthorizedUser_receiveUserVMWithRandomImageName() throws IOException {
         User user = userService.save(TestUtil.createValidUser("user1"));
         authenticate(user.getUsername());
 
         ClassPathResource imageResource = new ClassPathResource("profile-icon.png");
-        UserUpdateDTO userUpdateDto = createValidUserUpdateDto();
+        UserUpdateVM userUpdateVM = createValidUserUpdateVM();
         String imageString = readFileToBase64("profile-icon.png");
-        userUpdateDto.setImage(imageString);
+        userUpdateVM.setImage(imageString);
 
-        HttpEntity<UserUpdateDTO> requestEntity = new HttpEntity<>(userUpdateDto);
-        ResponseEntity<UserDTO> response = putUser(user.getId(), requestEntity, UserDTO.class);
+        HttpEntity<UserUpdateVM> requestEntity = new HttpEntity<>(userUpdateVM);
+        ResponseEntity<UserVM> response = putUser(user.getId(), requestEntity, UserVM.class);
 
         assertThat(response.getBody().getImage()).isNotEqualTo("profile-image.png");
     }
@@ -467,12 +467,12 @@ public class UserControllerTest {
         authenticate(user.getUsername());
 
         ClassPathResource imageResource = new ClassPathResource("profile-icon.png");
-        UserUpdateDTO userUpdateDto = createValidUserUpdateDto();
+        UserUpdateVM userUpdateVM = createValidUserUpdateVM();
         String imageString = readFileToBase64("profile-icon.png");
-        userUpdateDto.setImage(imageString);
+        userUpdateVM.setImage(imageString);
 
-        HttpEntity<UserUpdateDTO> requestEntity = new HttpEntity<>(userUpdateDto);
-        ResponseEntity<UserDTO> response = putUser(user.getId(), requestEntity, UserDTO.class);
+        HttpEntity<UserUpdateVM> requestEntity = new HttpEntity<>(userUpdateVM);
+        ResponseEntity<UserVM> response = putUser(user.getId(), requestEntity, UserVM.class);
 
         String storedImageName = response.getBody().getImage();
         String profilePicturePath = appConfiguration.getFullProfileImagesPath() + "/" + storedImageName;
@@ -484,9 +484,9 @@ public class UserControllerTest {
     public void putUser_withInvalidRequestBodyWithNullDisplayNameFromAuthorizedUser_receiveBadRequest() throws IOException {
         User user = userService.save(TestUtil.createValidUser("user1"));
         authenticate(user.getUsername());
-        UserUpdateDTO userUpdateDto = new UserUpdateDTO();
+        UserUpdateVM userUpdateVM = new UserUpdateVM();
 
-        HttpEntity<UserUpdateDTO> requestEntity = new HttpEntity<>(userUpdateDto);
+        HttpEntity<UserUpdateVM> requestEntity = new HttpEntity<>(userUpdateVM);
         ResponseEntity<Object> response = putUser(user.getId(), requestEntity, Object.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
@@ -496,10 +496,10 @@ public class UserControllerTest {
     public void putUser_withInvalidRequestBodyWithLessThanMinSizeDisplayNameFromAuthorizedUser_receiveBadRequest() throws IOException {
         User user = userService.save(TestUtil.createValidUser("user1"));
         authenticate(user.getUsername());
-        UserUpdateDTO userUpdateDto = new UserUpdateDTO();
-        userUpdateDto.setDisplayName("abc");
+        UserUpdateVM userUpdateVM = new UserUpdateVM();
+        userUpdateVM.setDisplayName("abc");
 
-        HttpEntity<UserUpdateDTO> requestEntity = new HttpEntity<>(userUpdateDto);
+        HttpEntity<UserUpdateVM> requestEntity = new HttpEntity<>(userUpdateVM);
         ResponseEntity<Object> response = putUser(user.getId(), requestEntity, Object.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
@@ -509,12 +509,12 @@ public class UserControllerTest {
     public void putUser_withInvalidRequestBodyWithGreaterThanMaxSizeDisplayNameFromAuthorizedUser_receiveBadRequest() throws IOException {
         User user = userService.save(TestUtil.createValidUser("user1"));
         authenticate(user.getUsername());
-        UserUpdateDTO userUpdateDto = new UserUpdateDTO();
+        UserUpdateVM userUpdateVM = new UserUpdateVM();
         String valueOf256Chars = IntStream.rangeClosed(1, 256).mapToObj(x -> "a")
                 .collect(Collectors.joining());
-        userUpdateDto.setDisplayName(valueOf256Chars);
+        userUpdateVM.setDisplayName(valueOf256Chars);
 
-        HttpEntity<UserUpdateDTO> requestEntity = new HttpEntity<>(userUpdateDto);
+        HttpEntity<UserUpdateVM> requestEntity = new HttpEntity<>(userUpdateVM);
         ResponseEntity<Object> response = putUser(user.getId(), requestEntity, Object.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
@@ -524,12 +524,12 @@ public class UserControllerTest {
     public void putUser_withValidRequestBodyWithJPGImageFromAuthorizedUser_receiveOk() throws IOException {
         User user = userService.save(TestUtil.createValidUser("user1"));
         authenticate(user.getUsername());
-        UserUpdateDTO userUpdateDto = createValidUserUpdateDto();
+        UserUpdateVM userUpdateVM = createValidUserUpdateVM();
         String imageString = readFileToBase64("test-jpg.jpg");
-        userUpdateDto.setImage(imageString);
+        userUpdateVM.setImage(imageString);
 
-        HttpEntity<UserUpdateDTO> requestEntity = new HttpEntity<>(userUpdateDto);
-        ResponseEntity<UserDTO> response = putUser(user.getId(), requestEntity, UserDTO.class);
+        HttpEntity<UserUpdateVM> requestEntity = new HttpEntity<>(userUpdateVM);
+        ResponseEntity<UserVM> response = putUser(user.getId(), requestEntity, UserVM.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
@@ -538,11 +538,11 @@ public class UserControllerTest {
     public void putUser_withValidRequestBodyWithGIFImageFromAuthorizedUser_receiveBadRequest() throws IOException {
         User user = userService.save(TestUtil.createValidUser("user1"));
         authenticate(user.getUsername());
-        UserUpdateDTO userUpdateDto = createValidUserUpdateDto();
+        UserUpdateVM userUpdateVM = createValidUserUpdateVM();
         String imageString = readFileToBase64("test-gif.gif");
-        userUpdateDto.setImage(imageString);
+        userUpdateVM.setImage(imageString);
 
-        HttpEntity<UserUpdateDTO> requestEntity = new HttpEntity<>(userUpdateDto);
+        HttpEntity<UserUpdateVM> requestEntity = new HttpEntity<>(userUpdateVM);
         ResponseEntity<Object> response = putUser(user.getId(), requestEntity, Object.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
@@ -552,11 +552,11 @@ public class UserControllerTest {
     public void putUser_withValidRequestBodyWithTXTFromAuthorizedUser_receiveValidationErrorForProfileImage() throws IOException {
         User user = userService.save(TestUtil.createValidUser("user1"));
         authenticate(user.getUsername());
-        UserUpdateDTO userUpdateDto = createValidUserUpdateDto();
+        UserUpdateVM userUpdateVM = createValidUserUpdateVM();
         String imageString = readFileToBase64("test-txt.txt");
-        userUpdateDto.setImage(imageString);
+        userUpdateVM.setImage(imageString);
 
-        HttpEntity<UserUpdateDTO> requestEntity = new HttpEntity<>(userUpdateDto);
+        HttpEntity<UserUpdateVM> requestEntity = new HttpEntity<>(userUpdateVM);
         ResponseEntity<ApiError> response = putUser(user.getId(), requestEntity, ApiError.class);
         Map<String, String> validationErrors = response.getBody().getValidationErrors();
 
@@ -567,14 +567,14 @@ public class UserControllerTest {
     public void putUser_withValidRequestBodyWithJPGImageForUserWhoHasImage_removesOldImageFromStorage() throws IOException {
         User user = userService.save(TestUtil.createValidUser("user1"));
         authenticate(user.getUsername());
-        UserUpdateDTO userUpdateDto = createValidUserUpdateDto();
+        UserUpdateVM userUpdateVM = createValidUserUpdateVM();
         String imageString = readFileToBase64("test-jpg.jpg");
-        userUpdateDto.setImage(imageString);
+        userUpdateVM.setImage(imageString);
 
-        HttpEntity<UserUpdateDTO> requestEntity = new HttpEntity<>(userUpdateDto);
-        ResponseEntity<UserDTO> response = putUser(user.getId(), requestEntity, UserDTO.class);
+        HttpEntity<UserUpdateVM> requestEntity = new HttpEntity<>(userUpdateVM);
+        ResponseEntity<UserVM> response = putUser(user.getId(), requestEntity, UserVM.class);
 
-        putUser(user.getId(), requestEntity, UserDTO.class);
+        putUser(user.getId(), requestEntity, UserVM.class);
 
         String storedImageName = response.getBody().getImage();
         String profilePicturePath = appConfiguration.getFullProfileImagesPath() + "/" + storedImageName;
@@ -590,10 +590,10 @@ public class UserControllerTest {
         return imageString;
     }
 
-    private UserUpdateDTO createValidUserUpdateDto() {
-        UserUpdateDTO userUpdateDto = new UserUpdateDTO();
-        userUpdateDto.setDisplayName("newDisplayName");
-        return userUpdateDto;
+    private UserUpdateVM createValidUserUpdateVM() {
+        UserUpdateVM userUpdateVM = new UserUpdateVM();
+        userUpdateVM.setDisplayName("newDisplayName");
+        return userUpdateVM;
     }
 
     private void authenticate(String username) {

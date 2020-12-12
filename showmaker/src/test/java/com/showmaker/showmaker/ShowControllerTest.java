@@ -3,6 +3,8 @@ package com.showmaker.showmaker;
 import com.showmaker.showmaker.error.ApiError;
 import com.showmaker.showmaker.show.Show;
 import com.showmaker.showmaker.show.ShowRepository;
+import com.showmaker.showmaker.show.ShowService;
+import com.showmaker.showmaker.show.vm.ShowVM;
 import com.showmaker.showmaker.user.User;
 import com.showmaker.showmaker.user.UserRepository;
 import com.showmaker.showmaker.user.UserService;
@@ -13,6 +15,8 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.support.BasicAuthenticationInterceptor;
@@ -46,6 +50,9 @@ public class ShowControllerTest {
 
     @Autowired
     ShowRepository showRepository;
+
+    @Autowired
+    ShowService showService;
 
     @PersistenceUnit
     private EntityManagerFactory entityManagerFactory;
@@ -183,6 +190,122 @@ public class ShowControllerTest {
 
         User inDBUser = entityManager.find(User.class, user.getId());
         assertThat(inDBUser.getShows().size()).isEqualTo(1);
+    }
+
+    @Test
+    public void getShows_whenThereAreNoShows_receiveOk() {
+        ResponseEntity<Object> response = getShows(new ParameterizedTypeReference<Object>() {});
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    public void getShows_whenThereAreNoShows_receivePageWithZeroItems() {
+        ResponseEntity<TestPage<Object>> response =
+                getShows(new ParameterizedTypeReference<TestPage<Object>>() {});
+        assertThat(response.getBody().getTotalElements()).isEqualTo(0);
+    }
+
+    @Test
+    public void getShows_whenThereAreShows_receivePageWithItems() {
+        User user = userService.save(TestUtil.createValidUser("user1"));
+        showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+
+        ResponseEntity<TestPage<Object>> response =
+                getShows(new ParameterizedTypeReference<TestPage<Object>>() {});
+        assertThat(response.getBody().getTotalElements()).isEqualTo(3);
+    }
+
+    @Test
+    public void getShows_whenThereAreShows_receivePageWithShowVM() {
+        User user = userService.save(TestUtil.createValidUser("user1"));
+        showService.save(user, TestUtil.createValidShow());
+
+        ResponseEntity<TestPage<ShowVM>> response =
+                getShows(new ParameterizedTypeReference<TestPage<ShowVM>>() {});
+        ShowVM storedShow = response.getBody().getContent().get(0);
+        assertThat(storedShow.getUser().getUsername()).isEqualTo("user1");
+    }
+
+    @Test
+    public void postShow_whenShowIsValidAndUserIsAuthorized_receiveShowVM() {
+        userService.save(TestUtil.createValidUser("user1"));
+        authenticate("user1");
+        Show show = TestUtil.createValidShow();
+        ResponseEntity<ShowVM> response = postShow(show, ShowVM.class);
+        assertThat(response.getBody().getUser().getUsername()).isEqualTo("user1");
+    }
+
+    @Test
+    public void getShowsOfUser_whenUserExists_receiveOk() {
+        userService.save(TestUtil.createValidUser("user1"));
+        ResponseEntity<Object> response =
+                getShowsOfUser("user1", new ParameterizedTypeReference<Object>() {});
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    public void getShowsOfUser_whenUserDoesNotExist_receiveNotFound() {
+        ResponseEntity<Object> response =
+                getShowsOfUser("unknownUser", new ParameterizedTypeReference<Object>() {});
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    public void getShowsOfUser_whenUserExists_receivePageWithZeroShows() {
+        userService.save(TestUtil.createValidUser("user1"));
+        ResponseEntity<TestPage<Object>> response =
+                getShowsOfUser("user1", new ParameterizedTypeReference<TestPage<Object>>() {});
+        assertThat(response.getBody().getTotalElements()).isEqualTo(0);
+    }
+
+    @Test
+    public void getShowsOfUser_whenUserExistsWithShow_receivePageWithShowVM() {
+        User user = userService.save(TestUtil.createValidUser("user1"));
+        showService.save(user, TestUtil.createValidShow());
+
+        ResponseEntity<TestPage<ShowVM>> response =
+                getShowsOfUser("user1", new ParameterizedTypeReference<TestPage<ShowVM>>() {});
+        ShowVM storedShow = response.getBody().getContent().get(0);
+        assertThat(storedShow.getUser().getUsername()).isEqualTo("user1");
+    }
+
+    @Test
+    public void getShowsOfUser_whenUserExistsWithMultipleShows_receivePageWithMatchingShowsCount() {
+        User user = userService.save(TestUtil.createValidUser("user1"));
+        showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+
+        ResponseEntity<TestPage<ShowVM>> response =
+                getShowsOfUser("user1", new ParameterizedTypeReference<TestPage<ShowVM>>() {});
+        assertThat(response.getBody().getTotalElements()).isEqualTo(3);
+    }
+
+    @Test
+    public void getShowsOfUser_whenMultipleUserExistsWithMultipleShows_receivePageWithMatchingShowsCount() {
+        User userWithThreeShows = userService.save(TestUtil.createValidUser("user1"));
+        IntStream.rangeClosed(1,3).forEach(i -> {
+            showService.save(userWithThreeShows, TestUtil.createValidShow());
+        });
+        User userWithFiveShows = userService.save(TestUtil.createValidUser("user2"));
+        IntStream.rangeClosed(1,5).forEach(i -> {
+            showService.save(userWithFiveShows, TestUtil.createValidShow());
+        });
+
+        ResponseEntity<TestPage<ShowVM>> response =
+                getShowsOfUser(userWithFiveShows.getUsername(), new ParameterizedTypeReference<TestPage<ShowVM>>() {});
+        assertThat(response.getBody().getTotalElements()).isEqualTo(5);
+    }
+
+    public <T> ResponseEntity<T> getShowsOfUser(String username, ParameterizedTypeReference<T> responseType) {
+        String path = "/api/1.0/users/" + username + "/shows";
+        return testRestTemplate.exchange(path, HttpMethod.GET, null, responseType);
+    }
+
+    public <T> ResponseEntity<T> getShows(ParameterizedTypeReference<T> responseType) {
+        return testRestTemplate.exchange(API_1_0_SHOWS, HttpMethod.GET, null, responseType);
     }
 
     private <T> ResponseEntity<T> postShow(Show show, Class<T> responseType) {

@@ -1,5 +1,6 @@
 package com.showmaker.showmaker.show;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.showmaker.showmaker.user.User;
 import lombok.Data;
 
