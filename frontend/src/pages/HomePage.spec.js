@@ -35,6 +35,14 @@ apiCalls.listUsers = jest.fn().mockResolvedValue({
     }
 });
 
+apiCalls.loadShows = jest.fn().mockResolvedValue({
+    data: {
+        content: [],
+        number: 0,
+        size: 3
+    }
+});
+
 describe('HomePage', () => {
     
     describe('Layout', () => {

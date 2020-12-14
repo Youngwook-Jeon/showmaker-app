@@ -75,6 +75,25 @@ describe('apiCalls', () => {
             apiCalls.postShow();
             const path = mockPostShow.mock.calls[0][0];
             expect(path).toBe('/api/1.0/shows');
-        })
-    })
+        });
+    });
+    describe('loadShows', () => {
+        it('calls /api/1.0/shows?page=0&size=5&sort=id,desc when no params provided', () => {
+            const mockGetShows = jest.fn();
+            axios.get = mockGetShows;
+            apiCalls.loadShows();
+            expect(mockGetShows).toBeCalledWith(
+                '/api/1.0/shows?page=0&size=5&sort=id,desc'
+            );
+        });
+
+        it('calls /api/1.0/users/user1/shows?page=0&size=5&sort=id,desc when user params provided', () => {
+            const mockGetShows = jest.fn();
+            axios.get = mockGetShows;
+            apiCalls.loadShows('user1');
+            expect(mockGetShows).toBeCalledWith(
+                '/api/1.0/users/user1/shows?page=0&size=5&sort=id,desc'
+            );
+        });
+    });
 });

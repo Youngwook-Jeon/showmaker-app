@@ -6,6 +6,14 @@ import { Provider } from 'react-redux';
 import configureStore from '../redux/configureStore';
 import axios from 'axios';
 
+apiCalls.loadShows = jest.fn().mockResolvedValue({
+    data: {
+        content: [],
+        number: 0,
+        size: 3
+    }
+});
+
 const mockSuccessGetUser = {
     data: {
         id: 1,
@@ -106,9 +114,9 @@ describe('UserPage', () => {
             });
 
             apiCalls.getUser = mockDelayedResponse;
-            const { queryByText } = setup({ match });
-            const spinner = queryByText('Loading...');
-            expect(spinner).toBeInTheDocument();
+            const { queryAllByText } = setup({ match });
+            const spinners = queryAllByText('Loading...');
+            expect(spinners.length).not.toBe(0);
         });
         it('displays the edit button when loggedInUser matches to user in url', async () => {
             setUserOneLoggedInStorage();

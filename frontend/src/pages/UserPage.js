@@ -2,6 +2,8 @@ import React from 'react';
 import * as apiCalls from '../api/apiCalls';
 import ProfileCard from '../components/ProfileCard';
 import { connect } from 'react-redux';
+import ShowFeed from '../components/ShowFeed';
+import Spinner from '../components/Spinner';
 
 class UserPage extends React.Component {
 
@@ -133,11 +135,7 @@ class UserPage extends React.Component {
         let pageContent;
         if (this.state.isLoadingUser) {
             pageContent = (
-                <div className="d-flex">
-                    <div className="spinner-border text-black-50 m-auto">
-                        <span className="sr-only">Loading...</span>
-                    </div>
-                </div>
+                <Spinner />
             );
         } else if (this.state.userNotFound) {
             pageContent = (
@@ -168,7 +166,14 @@ class UserPage extends React.Component {
         }
         return (
             <div data-testid="userpage" >
-                {pageContent}
+                <div className="row">
+                    <div className="col">
+                        {pageContent}
+                    </div>
+                    <div className="col">
+                        <ShowFeed user={this.props.match.params.username} />
+                    </div>
+                </div>
             </div>
         );
     }
