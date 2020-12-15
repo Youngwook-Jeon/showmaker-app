@@ -26,6 +26,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.PersistenceUnit;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -301,11 +302,238 @@ public class ShowControllerTest {
 
     @Test
     public void getOldShows_whenThereAreNoShows_receiveOk() {
-        
+        ResponseEntity<Object> response = getOldShows(5, new ParameterizedTypeReference<Object>() {});
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    public void getOldShows_whenThereAreShows_receivePageWithItemsProvidedId() {
+        User user = userService.save(TestUtil.createValidUser("user1"));
+        showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+        Show fourth = showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+
+        ResponseEntity<TestPage<Object>> response =
+                getOldShows(fourth.getId(), new ParameterizedTypeReference<TestPage<Object>>() {});
+        assertThat(response.getBody().getTotalElements()).isEqualTo(3);
+    }
+
+    @Test
+    public void getOldShows_whenThereAreShows_receivePageWithShowVMBeforeProvidedId() {
+        User user = userService.save(TestUtil.createValidUser("user1"));
+        showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+        Show fourth = showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+
+        ResponseEntity<TestPage<ShowVM>> response =
+                getOldShows(fourth.getId(), new ParameterizedTypeReference<TestPage<ShowVM>>() {});
+        assertThat(response.getBody().getContent().get(0).getDate()).isNotNull();
+    }
+
+    @Test
+    public void getOldShowsOfUser_whenUserExistThereAreNoShows_receiveOk() {
+        userService.save(TestUtil.createValidUser("user1"));
+        ResponseEntity<Object> response = getOldShowsOfUser(5, "user1", new ParameterizedTypeReference<Object>() {});
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    public void getOldShowsOfUser_whenUserExistAndThereAreShows_receivePageWithItemsProvidedId() {
+        User user = userService.save(TestUtil.createValidUser("user1"));
+        showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+        Show fourth = showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+
+        ResponseEntity<TestPage<ShowVM>> response =
+                getOldShowsOfUser(fourth.getId(),"user1", new ParameterizedTypeReference<TestPage<ShowVM>>() {});
+        assertThat(response.getBody().getTotalElements()).isEqualTo(3);
+    }
+
+    @Test
+    public void getOldShowsOfUser_whenUserExistAndThereAreShows_receivePageWithShowVMBeforeProvidedId() {
+        User user = userService.save(TestUtil.createValidUser("user1"));
+        showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+        Show fourth = showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+
+        ResponseEntity<TestPage<ShowVM>> response =
+                getOldShowsOfUser(fourth.getId(), "user1", new ParameterizedTypeReference<TestPage<ShowVM>>() {});
+        assertThat(response.getBody().getContent().get(0).getDate()).isNotNull();
+    }
+
+    @Test
+    public void getOldShowsOfUser_whenUserDoesNotExistThereAreNoShows_receiveNotFound() {
+        ResponseEntity<Object> response = getOldShowsOfUser(5, "user1", new ParameterizedTypeReference<Object>() {});
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    public void getOldShowsOfUser_whenUserExistAndThereAreNoShows_receivePageWithZeroItemsBeforeProvidedId() {
+        User user = userService.save(TestUtil.createValidUser("user1"));
+        showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+        Show fourth = showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+
+        userService.save(TestUtil.createValidUser("user2"));
+
+        ResponseEntity<TestPage<ShowVM>> response =
+                getOldShowsOfUser(fourth.getId(), "user2", new ParameterizedTypeReference<TestPage<ShowVM>>() {});
+        assertThat(response.getBody().getTotalElements()).isEqualTo(0);
+    }
+
+    @Test
+    public void getNewShows_whenThereAreShows_receiveListOfItemsProvidedId() {
+        User user = userService.save(TestUtil.createValidUser("user1"));
+        showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+        Show fourth = showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+
+        ResponseEntity<List<Object>> response =
+                getNewShows(fourth.getId(), new ParameterizedTypeReference<List<Object>>() {});
+        assertThat(response.getBody().size()).isEqualTo(1);
+    }
+
+    @Test
+    public void getNewShows_whenThereAreShows_receiveListOfShowVMProvidedId() {
+        User user = userService.save(TestUtil.createValidUser("user1"));
+        showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+        Show fourth = showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+
+        ResponseEntity<List<ShowVM>> response =
+                getNewShows(fourth.getId(), new ParameterizedTypeReference<List<ShowVM>>() {});
+        assertThat(response.getBody().get(0).getDate()).isNotNull();
+    }
+
+    @Test
+    public void getNewShowsOfUser_whenUserExistThereAreNoShows_receiveOk() {
+        userService.save(TestUtil.createValidUser("user1"));
+        ResponseEntity<Object> response = getNewShowsOfUser(5, "user1", new ParameterizedTypeReference<Object>() {});
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    public void getNewShowsOfUser_whenUserExistAndThereAreShows_receiveListWithItemsAfterProvidedId() {
+        User user = userService.save(TestUtil.createValidUser("user1"));
+        showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+        Show fourth = showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+
+        ResponseEntity<List<Object>> response =
+                getNewShowsOfUser(fourth.getId(),"user1", new ParameterizedTypeReference<List<Object>>() {});
+        assertThat(response.getBody().size()).isEqualTo(1);
+    }
+
+    @Test
+    public void getNewShowsOfUser_whenUserExistAndThereAreShows_receiveListWithShowVMAfterProvidedId() {
+        User user = userService.save(TestUtil.createValidUser("user1"));
+        showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+        Show fourth = showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+
+        ResponseEntity<List<ShowVM>> response =
+                getNewShowsOfUser(fourth.getId(), "user1", new ParameterizedTypeReference<List<ShowVM>>() {});
+        assertThat(response.getBody().get(0).getDate()).isNotNull();
+    }
+
+    @Test
+    public void getNewShowsOfUser_whenUserDoesNotExistThereAreNoShows_receiveNotFound() {
+        ResponseEntity<Object> response = getNewShowsOfUser(5, "user1", new ParameterizedTypeReference<Object>() {});
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    public void getNewShowsOfUser_whenUserExistAndThereAreNoShows_receiveListWithZeroItemsAfterProvidedId() {
+        User user = userService.save(TestUtil.createValidUser("user1"));
+        showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+        Show fourth = showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+
+        userService.save(TestUtil.createValidUser("user2"));
+
+        ResponseEntity<List<ShowVM>> response =
+                getNewShowsOfUser(fourth.getId(), "user2", new ParameterizedTypeReference<List<ShowVM>>() {});
+        assertThat(response.getBody().size()).isEqualTo(0);
+    }
+
+    @Test
+    public void getNewShowCount_whenThereAreShows_receiveCountAfterProvidedId() {
+        User user = userService.save(TestUtil.createValidUser("user1"));
+        showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+        Show fourth = showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+
+        ResponseEntity<Map<String, Long>> response =
+                getNewShowCount(fourth.getId(), new ParameterizedTypeReference<Map<String, Long>>() {});
+        assertThat(response.getBody().get("count")).isEqualTo(1);
+    }
+
+    @Test
+    public void getNewShowsCountOfUser_whenThereAreShows_receiveCountAfterProvidedId() {
+        User user = userService.save(TestUtil.createValidUser("user1"));
+        showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+        Show fourth = showService.save(user, TestUtil.createValidShow());
+        showService.save(user, TestUtil.createValidShow());
+
+        ResponseEntity<Map<String, Long>> response =
+                getNewShowsCountOfUser(fourth.getId(), "user1", new ParameterizedTypeReference<Map<String, Long>>() {});
+        assertThat(response.getBody().get("count")).isEqualTo(1);
+    }
+
+    public <T> ResponseEntity<T> getNewShowCount(long showId, ParameterizedTypeReference<T> responseType) {
+        String path = API_1_0_SHOWS + "/" + showId + "?direction=after&count=true";
+        return testRestTemplate.exchange(path, HttpMethod.GET, null, responseType);
+    }
+
+    public <T> ResponseEntity<T> getNewShowsCountOfUser(long showId, String username, ParameterizedTypeReference<T> responseType) {
+        String path = "/api/1.0/users/" + username + "/shows/" + showId +
+                "?direction=after&count=true";
+        return testRestTemplate.exchange(path, HttpMethod.GET, null, responseType);
+    }
+
+    public <T> ResponseEntity<T> getNewShows(long showId, ParameterizedTypeReference<T> responseType) {
+        String path = API_1_0_SHOWS + "/" + showId + "?direction=after&sort=id,desc";
+        return testRestTemplate.exchange(path, HttpMethod.GET, null, responseType);
+    }
+
+    public <T> ResponseEntity<T> getNewShowsOfUser(long showId, String username, ParameterizedTypeReference<T> responseType) {
+        String path = "/api/1.0/users/" + username + "/shows/" + showId +
+                "?direction=after&sort=id,desc";
+        return testRestTemplate.exchange(path, HttpMethod.GET, null, responseType);
     }
 
     public <T> ResponseEntity<T> getOldShows(long showId, ParameterizedTypeReference<T> responseType) {
         String path = API_1_0_SHOWS + "/" + showId + "?direction=before&page=0&size=5&sort=id,desc";
+        return testRestTemplate.exchange(path, HttpMethod.GET, null, responseType);
+    }
+
+    public <T> ResponseEntity<T> getOldShowsOfUser(long showId, String username, ParameterizedTypeReference<T> responseType) {
+        String path = "/api/1.0/users/" + username + "/shows/" + showId +
+                "?direction=before&page=0&size=5&sort=id,desc";
         return testRestTemplate.exchange(path, HttpMethod.GET, null, responseType);
     }
 
