@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import * as apiCalls from '../api/apiCalls';
 import Spinner from './Spinner';
+import ShowView from './ShowView';
 
 class ShowFeed extends Component {
 
@@ -36,8 +37,13 @@ class ShowFeed extends Component {
         return (
             <div>
                 {this.state.page.content.map(show => {
-                    return <span key={show.id}>{show.content}</span>;
+                    return <ShowView key={show.id} show={show} />;
                 })}
+                {this.state.page.last === false && (
+                    <div className="card card-header text-center">
+                        Load More
+                    </div>
+                )}
             </div>
         );
     }

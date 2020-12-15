@@ -2,9 +2,14 @@ import React from 'react';
 import { render, waitForDomChange, waitForElement } from '@testing-library/react';
 import ShowFeed from './ShowFeed';
 import * as apiCalls from '../api/apiCalls';
+import { MemoryRouter } from 'react-router-dom';
 
 const setup = (props) => {
-    return render(<ShowFeed {...props} />);
+    return render(
+        <MemoryRouter>
+            <ShowFeed {...props} />
+        </MemoryRouter>
+    );
 };
 
 const mockEmptyResponse = {
@@ -33,6 +38,29 @@ const mockSuccessGetShowsSinglePage = {
         last: true,
         size: 5,
         totalPages: 1
+    }
+};
+
+const mockSuccessGetShowsFirstOfMultiPage = {
+    data: {
+        content: [
+            {
+                id: 10,
+                content: 'This is the latest show',
+                date: '12/15/2020',
+                user: {
+                    id: 1,
+                    username: 'user1',
+                    displayName: 'display1',
+                    image: 'profile1.png'
+                }
+            }
+        ],
+        number: 0,
+        first: true,
+        last: false,
+        size: 5,
+        totalPages: 2
     }
 };
 
@@ -89,6 +117,13 @@ describe('ShowFeed', () => {
             const { queryByText } = setup();
             const showContent = await waitForElement(() => queryByText('This is the latest show'));
             expect(showContent).toBeInTheDocument();
+        });
+
+        it('displays Load More when there are next pages', async () => {
+            apiCalls.loadShows = jest.fn().mockResolvedValue(mockSuccessGetShowsFirstOfMultiPage);
+            const { queryByText } = setup();
+            const loadMore = await waitForElement(() => queryByText('Load More'));
+            expect(loadMore).toBeInTheDocument();
         });
     });
 });

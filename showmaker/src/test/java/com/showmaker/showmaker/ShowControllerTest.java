@@ -299,6 +299,16 @@ public class ShowControllerTest {
         assertThat(response.getBody().getTotalElements()).isEqualTo(5);
     }
 
+    @Test
+    public void getOldShows_whenThereAreNoShows_receiveOk() {
+        
+    }
+
+    public <T> ResponseEntity<T> getOldShows(long showId, ParameterizedTypeReference<T> responseType) {
+        String path = API_1_0_SHOWS + "/" + showId + "?direction=before&page=0&size=5&sort=id,desc";
+        return testRestTemplate.exchange(path, HttpMethod.GET, null, responseType);
+    }
+
     public <T> ResponseEntity<T> getShowsOfUser(String username, ParameterizedTypeReference<T> responseType) {
         String path = "/api/1.0/users/" + username + "/shows";
         return testRestTemplate.exchange(path, HttpMethod.GET, null, responseType);
