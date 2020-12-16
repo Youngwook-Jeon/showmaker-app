@@ -96,4 +96,61 @@ describe('apiCalls', () => {
             );
         });
     });
+    describe('loadOldShows', () => {
+        it('calls /api/1.0/shows/5?direction=before&page=0&size=5&sort=id,desc when user params provided', () => {
+            const mockGetShows = jest.fn();
+            axios.get = mockGetShows;
+            apiCalls.loadOldShows(5);
+            expect(mockGetShows).toBeCalledWith(
+                '/api/1.0/shows/5?direction=before&page=0&size=5&sort=id,desc'
+            );
+        });
+
+        it('calls /api/1.0/users/user3/shows/5?direction=before&page=0&size=5&sort=id,desc when id and user params provided', () => {
+            const mockGetShows = jest.fn();
+            axios.get = mockGetShows;
+            apiCalls.loadOldShows(5, 'user3');
+            expect(mockGetShows).toBeCalledWith(
+                '/api/1.0/users/user3/shows/5?direction=before&page=0&size=5&sort=id,desc'
+            );
+        });
+    });
+    describe('loadNewShows', () => {
+        it('calls /api/1.0/shows/5?direction=after&sort=id,desc when user params provided', () => {
+            const mockGetShows = jest.fn();
+            axios.get = mockGetShows;
+            apiCalls.loadNewShows(5);
+            expect(mockGetShows).toBeCalledWith(
+                '/api/1.0/shows/5?direction=after&sort=id,desc'
+            );
+        });
+
+        it('calls /api/1.0/users/user3/shows/5?direction=after&sort=id,desc when id and user params provided', () => {
+            const mockGetShows = jest.fn();
+            axios.get = mockGetShows;
+            apiCalls.loadNewShows(5, 'user3');
+            expect(mockGetShows).toBeCalledWith(
+                '/api/1.0/users/user3/shows/5?direction=after&sort=id,desc'
+            );
+        });
+    });
+    describe('loadNewShowsCount', () => {
+        it('calls /api/1.0/shows/5?direction=after&count=true when user params provided', () => {
+            const mockGetShows = jest.fn();
+            axios.get = mockGetShows;
+            apiCalls.loadNewShowsCount(5);
+            expect(mockGetShows).toBeCalledWith(
+                '/api/1.0/shows/5?direction=after&count=true'
+            );
+        });
+
+        it('calls /api/1.0/users/user3/shows/5?direction=after&count=true when id and user params provided', () => {
+            const mockGetShows = jest.fn();
+            axios.get = mockGetShows;
+            apiCalls.loadNewShowsCount(5, 'user3');
+            expect(mockGetShows).toBeCalledWith(
+                '/api/1.0/users/user3/shows/5?direction=after&count=true'
+            );
+        });
+    });
 });
