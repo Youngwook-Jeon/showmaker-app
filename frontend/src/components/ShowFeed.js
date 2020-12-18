@@ -10,7 +10,9 @@ class ShowFeed extends Component {
             content: []
         },
         isLoadingShows: false,
-        newShowCount: 0
+        newShowCount: 0,
+        isLoadingOldShows: false,
+        isLoadingNewShows: false
     };
 
     componentDidMount() {
@@ -48,13 +50,34 @@ class ShowFeed extends Component {
             return;
         }
         const showAtBottom = shows[shows.length - 1];
+        this.setState({ isLoadingOldShows: true });
         apiCalls.loadOldShows(showAtBottom.id, this.props.user)
             .then(response => {
                 const page = { ...this.state.page };
                 page.content = [ ...page.content, ...response.data.content ];
                 page.last = response.data.last;
-                this.setState({ page });
+                this.setState({ page, isLoadingOldShows: false });
+            })
+            .catch(error => {
+                this.setState({ isLoadingOldShows: false });
             });
+    };
+
+    onClickLoadNew = () => {
+        const shows = this.state.page.content;
+        let topShowId = 0;
+        if (shows.length > 0) {
+            topShowId = shows[0].id;
+        }
+        this.setState({ isLoadingNewShows: true });
+        apiCalls.loadNewShows(topShowId, this.props.user)
+        .then(response => {
+            const page = { ...this.state.page };
+            page.content = [...response.data, ...page.content];
+            this.setState({ page, newShowCount: 0, isLoadingNewShows: false });
+        }).catch(error => {
+            this.setState({ isLoadingNewShows: false });
+        });
     };
 
     render() {
@@ -70,15 +93,19 @@ class ShowFeed extends Component {
                 </div>
             );
         }
+        const newShowCountMessage = this.state.newShowCount === 1 ? 
+            'There is 1 new show' : 
+            `There are ${this.state.newShowCount} new shows`
 
         return (
             <div>
                 {this.state.newShowCount > 0 && (
-                    <div className="card card-header text-center">
-                        {this.state.newShowCount === 1 ? 
-                            'There is 1 new show' : 
-                            `There are ${this.state.newShowCount} new shows`
-                        }
+                    <div 
+                        className="card card-header text-center"
+                        onClick={!this.state.isLoadingNewShows && this.onClickLoadNew}
+                        style={{ cursor: this.state.isLoadingNewShows ? 'not-allowed' : 'pointer' }}
+                    >
+                        {this.state.isLoadingNewShows ? <Spinner /> : newShowCountMessage}
                     </div>
                 )}
                 {this.state.page.content.map(show => {
@@ -87,10 +114,10 @@ class ShowFeed extends Component {
                 {this.state.page.last === false && (
                     <div 
                         className="card card-header text-center"
-                        onClick={this.onClickLoadMore}
-                        style={{ cursor: 'pointer' }}
+                        onClick={!this.state.isLoadingOldShows && this.onClickLoadMore}
+                        style={{ cursor: this.state.isLoadingOldShows ? 'not-allowed' : 'pointer' }}
                     >
-                        Load More
+                        {this.state.isLoadingOldShows ? <Spinner /> : 'Load More'}
                     </div>
                 )}
             </div>

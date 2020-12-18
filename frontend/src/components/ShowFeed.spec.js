@@ -40,6 +40,45 @@ const mockEmptyResponse = {
     }
 };
 
+const mockSuccessGetNewShowsList = {
+    data: [
+        {
+            id: 21,
+            content: 'This is the new latest show',
+            date: '12/15/2020',
+            user: {
+                id: 1,
+                username: 'user1',
+                displayName: 'display1',
+                image: 'profile1.png'
+            }
+        }
+    ]
+};
+
+const mockSuccessGetShowsMiddleOfMultiPage = {
+    data: {
+        content: [
+            {
+                id: 5,
+                content: 'This is the middle show',
+                date: '12/15/2020',
+                user: {
+                    id: 1,
+                    username: 'user1',
+                    displayName: 'display1',
+                    image: 'profile1.png'
+                }
+            }
+        ],
+        number: 0,
+        first: false,
+        last: false,
+        size: 5,
+        totalPages: 1
+    }
+}
+
 const mockSuccessGetShowsSinglePage = {
     data: {
         content: [
@@ -297,6 +336,205 @@ describe('ShowFeed', () => {
             fireEvent.click(loadMore);
             await waitForElement(() => queryByText('This is the oldest show'));
             expect(queryByText('Load More')).not.toBeInTheDocument();
+        });
+
+        it('calls loadNewShows with show id when clicking New Show Count Card', async () => {
+            useFakeIntervals();
+            apiCalls.loadShows = jest.fn().mockResolvedValue(mockSuccessGetShowsFirstOfMultiPage);
+            apiCalls.loadNewShowsCount = jest.fn().mockResolvedValue({ data: { count: 1 }});
+            apiCalls.loadNewShows = jest.fn().mockResolvedValue(mockSuccessGetNewShowsList);
+            const { queryByText } = setup();
+            await waitForDomChange();
+            runTimer();
+            const newShowsCount = await waitForElement(() => queryByText('There is 1 new show'));
+            fireEvent.click(newShowsCount);
+            const firstParam = apiCalls.loadNewShows.mock.calls[0][0];
+            expect(firstParam).toBe(10);
+            useRealIntervals();
+        });
+
+        it('calls loadNewShows with show id and username when clicking Load More when clicking New Show Count card', async () => {
+            useFakeIntervals();
+            apiCalls.loadShows = jest.fn().mockResolvedValue(mockSuccessGetShowsFirstOfMultiPage);
+            apiCalls.loadNewShowsCount = jest.fn().mockResolvedValue({ data: { count: 1 }});
+            apiCalls.loadNewShows = jest.fn().mockResolvedValue(mockSuccessGetNewShowsList);
+            const { queryByText } = setup({ user: 'user1' });
+            await waitForDomChange();
+            runTimer();
+            const newShowsCount = await waitForElement(() => queryByText('There is 1 new show'));
+            fireEvent.click(newShowsCount);
+            expect(apiCalls.loadNewShows).toHaveBeenCalledWith(10, 'user1');
+            useRealIntervals();
+        });
+
+        it('displays loaded new shows when loadNewShows api call success', async () => {
+            useFakeIntervals();
+            apiCalls.loadShows = jest.fn().mockResolvedValue(mockSuccessGetShowsFirstOfMultiPage);
+            apiCalls.loadNewShowsCount = jest.fn().mockResolvedValue({ data: { count: 1 }});
+            apiCalls.loadNewShows = jest.fn().mockResolvedValue(mockSuccessGetNewShowsList);
+            const { queryByText } = setup({ user: 'user1' });
+            await waitForDomChange();
+            runTimer();
+            const newShowsCount = await waitForElement(() => queryByText('There is 1 new show'));
+            fireEvent.click(newShowsCount);
+            const newShow = await waitForElement(() => queryByText('This is the new latest show'));
+            expect(newShow).toBeInTheDocument();
+            useRealIntervals();
+        });
+
+        it('hides new show count when loadNewShows api call success', async () => {
+            useFakeIntervals();
+            apiCalls.loadShows = jest.fn().mockResolvedValue(mockSuccessGetShowsFirstOfMultiPage);
+            apiCalls.loadNewShowsCount = jest.fn().mockResolvedValue({ data: { count: 1 }});
+            apiCalls.loadNewShows = jest.fn().mockResolvedValue(mockSuccessGetNewShowsList);
+            const { queryByText } = setup({ user: 'user1' });
+            await waitForDomChange();
+            runTimer();
+            const newShowsCount = await waitForElement(() => queryByText('There is 1 new show'));
+            fireEvent.click(newShowsCount);
+            await waitForElement(() => queryByText('This is the new latest show'));
+            expect(queryByText('There is 1 new show')).not.toBeInTheDocument();
+            useRealIntervals();
+        });
+
+        it('does not allow loadOldShows to be called when there is an active api call about it', async () => {
+            apiCalls.loadShows = jest.fn().mockResolvedValue(mockSuccessGetShowsFirstOfMultiPage);
+            apiCalls.loadOldShows = jest.fn().mockResolvedValue(mockSuccessGetShowsLastOfMultiPage);
+            const { queryByText } = setup();
+            const loadMore = await waitForElement(() => queryByText('Load More'));
+            fireEvent.click(loadMore);
+            await waitForDomChange();
+            fireEvent.click(loadMore);
+            expect(apiCalls.loadOldShows).toHaveBeenCalledTimes(1);
+        });
+
+        it('replaces Load More with spinner when there is an active api call about it', async () => {
+            apiCalls.loadShows = jest.fn().mockResolvedValue(mockSuccessGetShowsFirstOfMultiPage);
+            apiCalls.loadOldShows = jest.fn().mockImplementation(() => {
+                return new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        resolve(mockSuccessGetShowsLastOfMultiPage);
+                    }, 300);
+                });
+            });
+            const { queryByText } = setup();
+            const loadMore = await waitForElement(() => queryByText('Load More'));
+            fireEvent.click(loadMore);
+            const spinner = await waitForElement(() => queryByText('Loading...'));
+            expect(spinner).toBeInTheDocument();
+            expect(queryByText('Load More')).not.toBeInTheDocument();
+        });
+
+        it('replaces spinner with Load More after active api call for loadOldShows finishes with middle page response', async () => {
+            apiCalls.loadShows = jest.fn().mockResolvedValue(mockSuccessGetShowsFirstOfMultiPage);
+            apiCalls.loadOldShows = jest.fn().mockImplementation(() => {
+                return new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        resolve(mockSuccessGetShowsMiddleOfMultiPage);
+                    }, 300);
+                });
+            });
+            const { queryByText } = setup();
+            const loadMore = await waitForElement(() => queryByText('Load More'));
+            fireEvent.click(loadMore);
+            await waitForElement(() => queryByText('This is the middle show'));
+            expect(queryByText('Loading...')).not.toBeInTheDocument();
+            expect(queryByText('Load More')).toBeInTheDocument();
+        });
+
+        it('replaces spinner with Load More after active api call for loadOldShows finishes with error', async () => {
+            apiCalls.loadShows = jest.fn().mockResolvedValue(mockSuccessGetShowsFirstOfMultiPage);
+            apiCalls.loadOldShows = jest.fn().mockImplementation(() => {
+                return new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        reject({ response: { data: {} }});
+                    }, 300);
+                });
+            });
+            const { queryByText } = setup();
+            const loadMore = await waitForElement(() => queryByText('Load More'));
+            fireEvent.click(loadMore);
+            await waitForElement(() => queryByText('Loading...'));
+            await waitForDomChange();
+            expect(queryByText('Loading...')).not.toBeInTheDocument();
+            expect(queryByText('Load More')).toBeInTheDocument();
+        });
+
+        it('does not allow loadNewShows to be called when there is an active api call about it', async () => {
+            useFakeIntervals();
+            apiCalls.loadShows = jest.fn().mockResolvedValue(mockSuccessGetShowsFirstOfMultiPage);
+            apiCalls.loadNewShowsCount = jest.fn().mockResolvedValue({ data: { count: 1 }});
+            apiCalls.loadNewShows = jest.fn().mockResolvedValue(mockSuccessGetNewShowsList);
+            const { queryByText } = setup({ user: 'user1' });
+            await waitForDomChange();
+            runTimer();
+            const newShowsCount = await waitForElement(() => queryByText('There is 1 new show'));
+            fireEvent.click(newShowsCount);
+            await waitForDomChange();
+            fireEvent.click(newShowsCount);
+            expect(apiCalls.loadNewShows).toHaveBeenCalledTimes(1);
+            useRealIntervals();
+        });
+
+        it('replaces There is 1 new show with spinner when there is an active api call about it', async () => {
+            useFakeIntervals();
+            apiCalls.loadShows = jest.fn().mockResolvedValue(mockSuccessGetShowsFirstOfMultiPage);
+            apiCalls.loadNewShowsCount = jest.fn().mockResolvedValue({ data: { count: 1 }});
+            apiCalls.loadNewShows = jest.fn().mockImplementation(() => {
+                return new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        resolve(mockSuccessGetNewShowsList);
+                    }, 300);
+                });
+            });
+            const { queryByText } = setup();
+            await waitForDomChange();
+            runTimer();
+            const newShowsCount = await waitForElement(() => queryByText('There is 1 new show'));
+            fireEvent.click(newShowsCount);
+            const spinner = await waitForElement(() => queryByText('Loading...'));
+            expect(spinner).toBeInTheDocument();
+            expect(queryByText('There is 1 new show')).not.toBeInTheDocument();
+            useRealIntervals();
+        });
+
+        it('removes spinner and There is 1 new show after active api call for loadNewShows finishes with success', async () => {
+            useFakeIntervals();
+            apiCalls.loadShows = jest.fn().mockResolvedValue(mockSuccessGetShowsFirstOfMultiPage);
+            apiCalls.loadNewShowsCount = jest.fn().mockResolvedValue({ data: { count: 1 }});
+            apiCalls.loadNewShows = jest.fn().mockResolvedValue(mockSuccessGetNewShowsList);
+            const { queryByText } = setup({ user: 'user1' });
+            await waitForDomChange();
+            runTimer();
+            const newShowsCount = await waitForElement(() => queryByText('There is 1 new show'));
+            fireEvent.click(newShowsCount);
+            await waitForElement(() => queryByText('This is the new latest show'));
+            expect(queryByText('Loading...')).not.toBeInTheDocument();
+            expect(queryByText('There is 1 new show')).not.toBeInTheDocument();
+            useRealIntervals();
+        });
+
+        it('replaces spinner with There is 1 new show after active api call for loadNewShows finishes with error', async () => {
+            useFakeIntervals();
+            apiCalls.loadShows = jest.fn().mockResolvedValue(mockSuccessGetShowsFirstOfMultiPage);
+            apiCalls.loadNewShowsCount = jest.fn().mockResolvedValue({ data: { count: 1 }});
+            apiCalls.loadNewShows = jest.fn().mockImplementation(() => {
+                return new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        reject({ response: { data: {} }});
+                    }, 300);
+                });
+            });
+            const { queryByText } = setup();
+            await waitForDomChange();
+            runTimer();
+            const newShowsCount = await waitForElement(() => queryByText('There is 1 new show'));
+            fireEvent.click(newShowsCount);
+            await waitForElement(() => queryByText('Loading...'));
+            await waitForDomChange();
+            expect(queryByText('Loading...')).not.toBeInTheDocument();
+            expect(queryByText('There is 1 new show')).toBeInTheDocument();
+            useRealIntervals();
         });
     });
 });
