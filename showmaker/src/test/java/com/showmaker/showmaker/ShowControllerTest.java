@@ -1,6 +1,10 @@
 package com.showmaker.showmaker;
 
+import com.showmaker.showmaker.configuration.AppConfiguration;
 import com.showmaker.showmaker.error.ApiError;
+import com.showmaker.showmaker.file.FileAttachment;
+import com.showmaker.showmaker.file.FileAttachmentRepository;
+import com.showmaker.showmaker.file.FileService;
 import com.showmaker.showmaker.show.Show;
 import com.showmaker.showmaker.show.ShowRepository;
 import com.showmaker.showmaker.show.ShowService;
@@ -8,6 +12,7 @@ import com.showmaker.showmaker.show.vm.ShowVM;
 import com.showmaker.showmaker.user.User;
 import com.showmaker.showmaker.user.UserRepository;
 import com.showmaker.showmaker.user.UserService;
+import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -16,16 +21,21 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.support.BasicAuthenticationInterceptor;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.PersistenceUnit;
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -55,18 +65,30 @@ public class ShowControllerTest {
     @Autowired
     ShowService showService;
 
+    @Autowired
+    FileAttachmentRepository fileAttachmentRepository;
+
+    @Autowired
+    FileService fileService;
+
+    @Autowired
+    AppConfiguration appConfiguration;
+
     @PersistenceUnit
     private EntityManagerFactory entityManagerFactory;
 
     @Before
-    public void cleanup() {
+    public void cleanup() throws IOException {
+        fileAttachmentRepository.deleteAll();
         showRepository.deleteAll();
         userRepository.deleteAll();
         testRestTemplate.getRestTemplate().getInterceptors().clear();
+        FileUtils.cleanDirectory(new File(appConfiguration.getFullAttachmentsPath()));
     }
 
     @After
     public void cleanupAfter() {
+        fileAttachmentRepository.deleteAll();
         showRepository.deleteAll();
     }
 
@@ -236,6 +258,57 @@ public class ShowControllerTest {
         Show show = TestUtil.createValidShow();
         ResponseEntity<ShowVM> response = postShow(show, ShowVM.class);
         assertThat(response.getBody().getUser().getUsername()).isEqualTo("user1");
+    }
+
+    @Test
+    public void postShow_whenShowHasFileAttachmentAndUserIsAuthorized_fileAttachmentShowRelationIsUpdatedInDatabase() throws IOException {
+        userService.save(TestUtil.createValidUser("user1"));
+        authenticate("user1");
+
+        MultipartFile file = createFile();
+        FileAttachment savedFile = fileService.saveAttachment(file);
+
+        Show show = TestUtil.createValidShow();
+        show.setAttachment(savedFile);
+        ResponseEntity<ShowVM> response = postShow(show, ShowVM.class);
+        FileAttachment inDB = fileAttachmentRepository.findAll().get(0);
+        assertThat(inDB.getShow().getId()).isEqualTo(response.getBody().getId());
+    }
+
+    @Test
+    public void postShow_whenShowHasFileAttachmentAndUserIsAuthorized_showFileAttachmentRelationIsUpdatedInDatabase() throws IOException {
+        userService.save(TestUtil.createValidUser("user1"));
+        authenticate("user1");
+
+        MultipartFile file = createFile();
+        FileAttachment savedFile = fileService.saveAttachment(file);
+
+        Show show = TestUtil.createValidShow();
+        show.setAttachment(savedFile);
+        ResponseEntity<ShowVM> response = postShow(show, ShowVM.class);
+        Show inDB = showRepository.findById(response.getBody().getId()).get();
+        assertThat(inDB.getAttachment().getId()).isEqualTo(savedFile.getId());
+    }
+
+    @Test
+    public void postShow_whenShowHasFileAttachmentAndUserIsAuthorized_receiveShowVMWithAttachment() throws IOException {
+        userService.save(TestUtil.createValidUser("user1"));
+        authenticate("user1");
+
+        MultipartFile file = createFile();
+        FileAttachment savedFile = fileService.saveAttachment(file);
+
+        Show show = TestUtil.createValidShow();
+        show.setAttachment(savedFile);
+        ResponseEntity<ShowVM> response = postShow(show, ShowVM.class);
+        assertThat(response.getBody().getAttachment().getName()).isEqualTo(savedFile.getName());
+    }
+
+    private MultipartFile createFile() throws IOException {
+        ClassPathResource imageResource = new ClassPathResource("profile-icon.png");
+        byte[] fileAsByte = FileUtils.readFileToByteArray(imageResource.getFile());
+
+        return new MockMultipartFile("profile-icon.png", fileAsByte);
     }
 
     @Test

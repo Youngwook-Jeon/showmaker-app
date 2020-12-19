@@ -1,5 +1,7 @@
 package com.showmaker.showmaker.show;
 
+import com.showmaker.showmaker.file.FileAttachment;
+import com.showmaker.showmaker.file.FileAttachmentRepository;
 import com.showmaker.showmaker.user.User;
 import com.showmaker.showmaker.user.UserService;
 import org.springframework.data.domain.Page;
@@ -19,16 +21,25 @@ public class ShowService {
 
     ShowRepository showRepository;
     UserService userService;
+    FileAttachmentRepository fileAttachmentRepository;
 
-    public ShowService(ShowRepository showRepository, UserService userService) {
+    public ShowService(ShowRepository showRepository,
+                       UserService userService,
+                       FileAttachmentRepository fileAttachmentRepository) {
         super();
         this.showRepository = showRepository;
         this.userService = userService;
+        this.fileAttachmentRepository = fileAttachmentRepository;
     }
 
     public Show save(User user, Show show) {
         show.setTimestamp(LocalDateTime.now());
         show.setUser(user);
+        if (show.getAttachment() != null) {
+            FileAttachment inDB = fileAttachmentRepository.findById(show.getAttachment().getId()).get();
+            inDB.setShow(show);
+            show.setAttachment(inDB);
+        }
         return showRepository.save(show);
     }
 

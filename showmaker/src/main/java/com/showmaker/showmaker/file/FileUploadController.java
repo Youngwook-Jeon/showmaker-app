@@ -1,8 +1,10 @@
 package com.showmaker.showmaker.file;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -11,12 +13,11 @@ import java.util.UUID;
 @RequestMapping("/api/1.0")
 public class FileUploadController {
 
+    @Autowired
+    FileService fileService;
+
     @PostMapping("/shows/upload")
-    FileAttachment uploadForShow() {
-        FileAttachment fileAttachment = new FileAttachment();
-        fileAttachment.setDate(LocalDateTime.now());
-        String randomName = UUID.randomUUID().toString().replaceAll("-", "");
-        fileAttachment.setName(randomName);
-        return fileAttachment;
+    FileAttachment uploadForShow(MultipartFile file) {
+        return fileService.saveAttachment(file);
     }
 }
