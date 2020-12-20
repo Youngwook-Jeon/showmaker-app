@@ -3,6 +3,8 @@ package com.showmaker.showmaker.file;
 import com.showmaker.showmaker.configuration.AppConfiguration;
 import org.apache.commons.io.FileUtils;
 import org.apache.tika.Tika;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -12,9 +14,11 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.Base64;
+import java.util.List;
 import java.util.UUID;
 
 @Service
+@EnableScheduling
 public class FileService {
 
     AppConfiguration appConfiguration;
@@ -72,5 +76,24 @@ public class FileService {
         }
 
         return fileAttachmentRepository.save(fileAttachment);
+    }
+
+    @Scheduled(fixedRate = 60 * 60 * 1000)
+    public void cleanupStorage() {
+        LocalDateTime oneHourAgo = LocalDateTime.now().minusHours(1);
+        List<FileAttachment> oldFiles =
+                fileAttachmentRepository.findByDateBeforeAndShowIsNull(oneHourAgo);
+        for (FileAttachment file: oldFiles) {
+            deleteAttachmentImage(file.getName());
+            fileAttachmentRepository.deleteById(file.getId());
+        }
+    }
+
+    private void deleteAttachmentImage(String name) {
+        try {
+            Files.deleteIfExists(Paths.get(appConfiguration.getFullAttachmentsPath() + "/" + name));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

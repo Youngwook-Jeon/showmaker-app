@@ -60,3 +60,7 @@ export const loadNewShowsCount = (showId, username) => {
     const path = `${basePath}/${showId}?direction=after&count=true`;
     return axios.get(path);
 };
+
+export const postShowFile = (file) => {
+    return axios.post('/api/1.0/shows/upload', file);
+};

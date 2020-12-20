@@ -3,20 +3,51 @@ import { render } from '@testing-library/react';
 import ShowView from './ShowView';
 import { MemoryRouter } from 'react-router-dom';
 
-const setup = () => {
+const showWithoutAttachment = {
+    id: 10,
+    content: 'This is the first show',
+    user: {
+        id: 1,
+        username: 'user1',
+        displayName: 'display1',
+        image: 'profile1.png'
+    }
+};
+
+const showWithAttachment = {
+    id: 10,
+    content: 'This is the first show',
+    user: {
+        id: 1,
+        username: 'user1',
+        displayName: 'display1',
+        image: 'profile1.png'
+    },
+    attachment: {
+        fileType: 'image/png',
+        name: 'attached-image.png'
+    }
+};
+
+const showWithPdfAttachment = {
+    id: 10,
+    content: 'This is the first show',
+    user: {
+        id: 1,
+        username: 'user1',
+        displayName: 'display1',
+        image: 'profile1.png'
+    },
+    attachment: {
+        fileType: 'application/pdf',
+        name: 'attached.pdf'
+    }
+};
+
+const setup = (show = showWithoutAttachment) => {
     const oneMinute = 60 * 1000;
     const date = new Date(new Date() - oneMinute);
-    const show = {
-        id: 10,
-        content: 'This is the first show',
-        date: date,
-        user: {
-            id: 1,
-            username: 'user1',
-            displayName: 'display1',
-            image: 'profile1.png'
-        }
-    };
+    show.date = date;
     return render(
         <MemoryRouter>
             <ShowView show={show} />
@@ -51,6 +82,26 @@ describe('ShowView', () => {
             const { container } = setup();
             const anchor = container.querySelector('a');
             expect(anchor.getAttribute('href')).toBe('/user1');
+        });
+
+        it('displays file attachment image', () => {
+            const { container } = setup(showWithAttachment);
+            const images = container.querySelectorAll('img');
+            expect(images.length).toBe(2);
+        });
+
+        it('does not displays file attachment when attachment type is not image', () => {
+            const { container } = setup(showWithPdfAttachment);
+            const images = container.querySelectorAll('img');
+            expect(images.length).toBe(1);
+        });
+
+        it('set the attachment path as source for file attachment image', () => {
+            const { container } = setup(showWithAttachment);
+            const images = container.querySelectorAll('img');
+            const attachmentImage = images[1];
+            expect(attachmentImage.src).toContain('/images/attachments/' + 
+                showWithAttachment.attachment.name);
         });
     });
 });

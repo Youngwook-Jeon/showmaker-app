@@ -153,4 +153,13 @@ describe('apiCalls', () => {
             );
         });
     });
+    describe('postShowFile', () => {
+        it('calls /api/1.0/shows/upload', () => {
+            const mockPostShowFile = jest.fn();
+            axios.post = mockPostShowFile;
+            apiCalls.postShowFile();
+            const path = mockPostShowFile.mock.calls[0][0];
+            expect(path).toBe('/api/1.0/shows/upload');
+        });
+    });
 });
