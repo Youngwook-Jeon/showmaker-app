@@ -5,6 +5,7 @@ import com.showmaker.showmaker.error.ApiError;
 import com.showmaker.showmaker.file.FileAttachment;
 import com.showmaker.showmaker.file.FileAttachmentRepository;
 import com.showmaker.showmaker.file.FileService;
+import com.showmaker.showmaker.shared.GenericResponse;
 import com.showmaker.showmaker.show.Show;
 import com.showmaker.showmaker.show.ShowRepository;
 import com.showmaker.showmaker.show.ShowService;
@@ -38,6 +39,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -575,6 +577,102 @@ public class ShowControllerTest {
         ResponseEntity<Map<String, Long>> response =
                 getNewShowsCountOfUser(fourth.getId(), "user1", new ParameterizedTypeReference<Map<String, Long>>() {});
         assertThat(response.getBody().get("count")).isEqualTo(1);
+    }
+
+    @Test
+    public void deleteShow_whenUserIsUnauthorized_receiveUnauthorized() {
+        ResponseEntity<Object> response = deleteShow(555, Object.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    public void deleteShow_whenUserIsAuthorized_receiveOk() {
+        User user = userService.save(TestUtil.createValidUser("user1"));
+        authenticate("user1");
+        Show show = showService.save(user, TestUtil.createValidShow());
+        ResponseEntity<Object> response = deleteShow(show.getId(), Object.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    public void deleteShow_whenUserIsAuthorized_receiveGenericResponse() {
+        User user = userService.save(TestUtil.createValidUser("user1"));
+        authenticate("user1");
+        Show show = showService.save(user, TestUtil.createValidShow());
+        ResponseEntity<GenericResponse> response = deleteShow(show.getId(), GenericResponse.class);
+        assertThat(response.getBody().getMessage()).isNotNull();
+    }
+
+    @Test
+    public void deleteShow_whenUserIsAuthorized_showRemovedFromDB() {
+        User user = userService.save(TestUtil.createValidUser("user1"));
+        authenticate("user1");
+        Show show = showService.save(user, TestUtil.createValidShow());
+        deleteShow(show.getId(), Object.class);
+        Optional<Show> inDB = showRepository.findById(show.getId());
+        assertThat(inDB.isPresent()).isFalse();
+    }
+
+    @Test
+    public void deleteShow_whenShowIsOwnedByAnotherUser_receiveForbidden() {
+        User user = userService.save(TestUtil.createValidUser("user1"));
+        authenticate("user1");
+        User showOwner = userService.save(TestUtil.createValidUser("show-owner"));
+        Show show = showService.save(showOwner, TestUtil.createValidShow());
+
+        ResponseEntity<Object> response = deleteShow(show.getId(), Object.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    public void deleteShow_whenShowNotExist_receiveForbidden() {
+        User user = userService.save(TestUtil.createValidUser("user1"));
+        authenticate("user1");
+        ResponseEntity<Object> response = deleteShow(555, Object.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    public void deleteShow_whenShowHasAttachment_attachmentRemovedFromDB() throws IOException {
+        userService.save(TestUtil.createValidUser("user1"));
+        authenticate("user1");
+
+        MultipartFile file = createFile();
+        FileAttachment savedFile = fileService.saveAttachment(file);
+
+        Show show = TestUtil.createValidShow();
+        show.setAttachment(savedFile);
+        ResponseEntity<ShowVM> response = postShow(show, ShowVM.class);
+
+        long showId = response.getBody().getId();
+        deleteShow(showId, Object.class);
+        Optional<FileAttachment> optionalFileAttachment =
+                fileAttachmentRepository.findById(savedFile.getId());
+        assertThat(optionalFileAttachment.isPresent()).isFalse();
+    }
+
+    @Test
+    public void deleteShow_whenShowHasAttachment_attachmentRemovedFromStorage() throws IOException {
+        userService.save(TestUtil.createValidUser("user1"));
+        authenticate("user1");
+
+        MultipartFile file = createFile();
+        FileAttachment savedFile = fileService.saveAttachment(file);
+
+        Show show = TestUtil.createValidShow();
+        show.setAttachment(savedFile);
+        ResponseEntity<ShowVM> response = postShow(show, ShowVM.class);
+
+        long showId = response.getBody().getId();
+        deleteShow(showId, Object.class);
+        String attachmentFolderPath =
+                appConfiguration.getFullAttachmentsPath() + "/" + savedFile.getName();
+        File storedImage = new File(attachmentFolderPath);
+        assertThat(storedImage.exists()).isFalse();
+    }
+
+    public <T> ResponseEntity<T> deleteShow(long showId, Class<T> responseType) {
+        return testRestTemplate.exchange(API_1_0_SHOWS + "/" + showId, HttpMethod.DELETE, null, responseType);
     }
 
     public <T> ResponseEntity<T> getNewShowCount(long showId, ParameterizedTypeReference<T> responseType) {

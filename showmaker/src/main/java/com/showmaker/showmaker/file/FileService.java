@@ -89,7 +89,7 @@ public class FileService {
         }
     }
 
-    private void deleteAttachmentImage(String name) {
+    public void deleteAttachmentImage(String name) {
         try {
             Files.deleteIfExists(Paths.get(appConfiguration.getFullAttachmentsPath() + "/" + name));
         } catch (IOException e) {

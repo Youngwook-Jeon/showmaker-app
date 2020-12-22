@@ -2,6 +2,7 @@ package com.showmaker.showmaker.show;
 
 import com.showmaker.showmaker.file.FileAttachment;
 import com.showmaker.showmaker.file.FileAttachmentRepository;
+import com.showmaker.showmaker.file.FileService;
 import com.showmaker.showmaker.user.User;
 import com.showmaker.showmaker.user.UserService;
 import org.springframework.data.domain.Page;
@@ -22,14 +23,17 @@ public class ShowService {
     ShowRepository showRepository;
     UserService userService;
     FileAttachmentRepository fileAttachmentRepository;
+    FileService fileService;
 
     public ShowService(ShowRepository showRepository,
                        UserService userService,
-                       FileAttachmentRepository fileAttachmentRepository) {
+                       FileAttachmentRepository fileAttachmentRepository,
+                       FileService fileService) {
         super();
         this.showRepository = showRepository;
         this.userService = userService;
         this.fileAttachmentRepository = fileAttachmentRepository;
+        this.fileService = fileService;
     }
 
     public Show save(User user, Show show) {
@@ -92,5 +96,13 @@ public class ShowService {
     private Specification<Show> idGreaterThan(long id) {
         return (Specification<Show>) (root, criteriaQuery, criteriaBuilder) ->
                 criteriaBuilder.greaterThan(root.get("id"), id);
+    }
+
+    public void deleteShow(long id) {
+        Show show = showRepository.getOne(id);
+        if (show.getAttachment() != null) {
+            fileService.deleteAttachmentImage(show.getAttachment().getName());
+        }
+        showRepository.deleteById(id);
     }
 }

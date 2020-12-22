@@ -1,12 +1,14 @@
 package com.showmaker.showmaker.show;
 
 import com.showmaker.showmaker.shared.CurrentUser;
+import com.showmaker.showmaker.shared.GenericResponse;
 import com.showmaker.showmaker.show.vm.ShowVM;
 import com.showmaker.showmaker.user.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
@@ -55,6 +57,13 @@ public class ShowController {
         List<ShowVM> newShows = showService.getNewShows(id, username, pageable).stream()
                 .map(ShowVM::new).collect(Collectors.toList());
         return ResponseEntity.ok(newShows);
+    }
+
+    @DeleteMapping("/shows/{id:[0-9]+}")
+    @PreAuthorize("@showSecurityService.isAllowedToDelete(#id, principal)")
+    GenericResponse deleteShow(@PathVariable long id) {
+        showService.deleteShow(id);
+        return new GenericResponse("Show is deleted.");
     }
 
 }

@@ -28,6 +28,6 @@ public class Show {
     @ManyToOne
     private User user;
 
-    @OneToOne(mappedBy = "show")
+    @OneToOne(mappedBy = "show", orphanRemoval = true)
     private FileAttachment attachment;
 }
