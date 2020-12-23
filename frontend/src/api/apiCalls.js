@@ -64,3 +64,7 @@ export const loadNewShowsCount = (showId, username) => {
 export const postShowFile = (file) => {
     return axios.post('/api/1.0/shows/upload', file);
 };
+
+export const deleteShow = (showId) => {
+    return axios.delete('/api/1.0/shows/' + showId);
+};

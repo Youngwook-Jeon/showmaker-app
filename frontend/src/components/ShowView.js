@@ -2,15 +2,18 @@ import React, { Component } from "react";
 import ProfileImageWithDefault from "./ProfileImageWithDefault";
 import { format } from "timeago.js";
 import { Link } from "react-router-dom";
+import { connect } from "react-redux";
 
 class ShowView extends Component {
   render() {
-    const { show } = this.props;
+    const { show, onClickDelete } = this.props;
     const { user, date } = show;
     const { username, displayName, image } = user;
     const relativeDate = format(date);
     const attachmentImageVisible =
       show.attachment && show.attachment.fileType.startsWith("image");
+
+    const ownedByLoggedInUser = user.id === this.props.loggedInUser.id;
 
     return (
       <div className="card p-1">
@@ -30,6 +33,14 @@ class ShowView extends Component {
             <span className="text-black-50"> - </span>
             <span className="text-black-50">{relativeDate}</span>
           </div>
+          {ownedByLoggedInUser && (
+            <button
+              className="btn btn-outline-danger btn-sm"
+              onClick={onClickDelete}
+            >
+              <i className="far fa-trash-alt" />
+            </button>
+          )}
         </div>
         <div className="pl-5">{show.content}</div>
         {attachmentImageVisible && (
@@ -46,4 +57,10 @@ class ShowView extends Component {
   }
 }
 
-export default ShowView;
+const mapStateToProps = (state) => {
+  return {
+    loggedInUser: state,
+  };
+};
+
+export default connect(mapStateToProps)(ShowView);

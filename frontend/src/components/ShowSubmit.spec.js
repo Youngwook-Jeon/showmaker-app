@@ -196,7 +196,7 @@ describe('ShowSubmit', () => {
             apiCalls.postShow = mockFunction;
             fireEvent.click(makeButton);
 
-            expect(queryByText('Now Loading...')).toBeInTheDocument();
+            expect(queryByText('Loading...')).toBeInTheDocument();
         });
 
         it('enables Make button when postShow api call fails', async () => {

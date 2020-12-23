@@ -9,7 +9,7 @@ const ButtonWithProgress = (props) => {
         >
             {props.pendingApiCall && (
                 <div className="spinner-border text-light spinner-border-sm mr-sm-1" role="status">
-                    <span className="sr-only">Now Loading...</span>
+                    <span className="sr-only">Loading...</span>
                 </div>
             )}
             {props.text}

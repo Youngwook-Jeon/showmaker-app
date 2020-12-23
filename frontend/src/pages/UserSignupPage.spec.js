@@ -159,7 +159,7 @@ describe('UserSignupPage', () => {
             const {queryByText} = setUpForSubmit({ actions });
             fireEvent.click(button);
         
-            const spinner = queryByText('Now Loading...');
+            const spinner = queryByText('Loading...');
             expect(spinner).toBeInTheDocument();
         });
         it('hides spinner after api call finishes successfully', async () => {
@@ -171,7 +171,7 @@ describe('UserSignupPage', () => {
 
             await waitForDomChange();
         
-            const spinner = queryByText('Now Loading...');
+            const spinner = queryByText('Loading...');
             expect(spinner).not.toBeInTheDocument();
         });
         it('hides spinner after api call finishes with error', async () => {
@@ -191,7 +191,7 @@ describe('UserSignupPage', () => {
 
             await waitForDomChange();
         
-            const spinner = queryByText('Now Loading...');
+            const spinner = queryByText('Loading...');
             expect(spinner).not.toBeInTheDocument();
         });
         it('displays validation error for displayName when error is received for the field', async () => {

@@ -206,7 +206,7 @@ describe('LoginPage', () => {
             const { queryByText } = setupForSubmit({ actions });
             fireEvent.click(button);
         
-            const spinner = queryByText('Now Loading...');
+            const spinner = queryByText('Loading...');
             expect(spinner).toBeInTheDocument();
         });
 
@@ -219,7 +219,7 @@ describe('LoginPage', () => {
 
             await waitForDomChange();
         
-            const spinner = queryByText('Now Loading...');
+            const spinner = queryByText('Loading...');
             expect(spinner).not.toBeInTheDocument();
         });
 
@@ -240,7 +240,7 @@ describe('LoginPage', () => {
 
             await waitForDomChange();
         
-            const spinner = queryByText('Now Loading...');
+            const spinner = queryByText('Loading...');
             expect(spinner).not.toBeInTheDocument();
         });
 

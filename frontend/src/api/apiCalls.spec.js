@@ -162,4 +162,13 @@ describe('apiCalls', () => {
             expect(path).toBe('/api/1.0/shows/upload');
         });
     });
+    describe('deleteShow', () => {
+        it('calls /api/1.0/shows/5 when show id param provided as 5', () => {
+            const mockDelete = jest.fn();
+            axios.delete = mockDelete;
+            apiCalls.deleteShow(5);
+            const path = mockDelete.mock.calls[0][0];
+            expect(path).toBe('/api/1.0/shows/5');
+        });
+    })
 });

@@ -3,6 +3,18 @@ import { fireEvent, render, waitForDomChange, waitForElement } from '@testing-li
 import ShowFeed from './ShowFeed';
 import * as apiCalls from '../api/apiCalls';
 import { MemoryRouter } from 'react-router-dom';
+import { Provider } from 'react-redux';
+import { createStore } from 'redux';
+import authReducer from '../redux/authReducer';
+
+const loggedInStateUser1 = {
+    id: 1,
+    username: 'user1',
+    displayName: 'display1',
+    image: 'profile1.png',
+    password: 'P4ssword',
+    isLoggedIn: true
+};
 
 const originalSetInterval = window.setInterval;
 const originalClearInterval = window.clearInterval;
@@ -26,11 +38,15 @@ const useRealIntervals = () => {
 const runTimer = () => {
     timedFunction && timedFunction();
 }
-const setup = (props) => {
+const setup = (props, state = loggedInStateUser1) => {
+    const store = createStore(authReducer, state);
+
     return render(
-        <MemoryRouter>
-            <ShowFeed {...props} />
-        </MemoryRouter>
+        <Provider store={store}>
+            <MemoryRouter>
+                <ShowFeed {...props} />
+            </MemoryRouter>
+        </Provider>
     );
 };
 
@@ -535,6 +551,148 @@ describe('ShowFeed', () => {
             expect(queryByText('Loading...')).not.toBeInTheDocument();
             expect(queryByText('There is 1 new show')).toBeInTheDocument();
             useRealIntervals();
+        });
+
+        it('displays modal when clicking delete on show', async () => {
+            apiCalls.loadShows = jest.fn().mockResolvedValue(mockSuccessGetShowsFirstOfMultiPage);
+            apiCalls.loadNewShowsCount = jest.fn().mockResolvedValue({ data: { count: 1 }});
+            const { queryByTestId, container } = setup();
+            await waitForDomChange();
+            const deleteButton = container.querySelectorAll('button')[0];
+            fireEvent.click(deleteButton);
+
+            const modalRootDiv = queryByTestId('modal-root');
+            expect(modalRootDiv).toHaveClass('modal fade d-block show');
+        });
+
+        it('hides modal when clicking cancel', async () => {
+            apiCalls.loadShows = jest.fn().mockResolvedValue(mockSuccessGetShowsFirstOfMultiPage);
+            apiCalls.loadNewShowsCount = jest.fn().mockResolvedValue({ data: { count: 1 }});
+            const { queryByTestId, container, queryByText } = setup();
+            await waitForDomChange();
+            const deleteButton = container.querySelectorAll('button')[0];
+            fireEvent.click(deleteButton);
+
+            fireEvent.click(queryByText('Cancel'));
+
+            const modalRootDiv = queryByTestId('modal-root');
+            expect(modalRootDiv).not.toHaveClass('d-block show');
+        });
+
+        it('displays modal with information about the action', async () => {
+            apiCalls.loadShows = jest.fn().mockResolvedValue(mockSuccessGetShowsFirstOfMultiPage);
+            apiCalls.loadNewShowsCount = jest.fn().mockResolvedValue({ data: { count: 1 }});
+            const { container, queryByText } = setup();
+            await waitForDomChange();
+            const deleteButton = container.querySelectorAll('button')[0];
+            fireEvent.click(deleteButton);
+
+            const message = queryByText(`Are you sure to delete 'This is the latest show'?`);
+            expect(message).toBeInTheDocument();
+        });
+
+        it('calls deleteShow api with show id when delete button is clicked on modal', async () => {
+            apiCalls.loadShows = jest.fn().mockResolvedValue(mockSuccessGetShowsFirstOfMultiPage);
+            apiCalls.loadNewShowsCount = jest.fn().mockResolvedValue({ data: { count: 1 }});
+            apiCalls.deleteShow = jest.fn().mockResolvedValue({});
+            const { container, queryByText } = setup();
+            await waitForDomChange();
+            const deleteButton = container.querySelectorAll('button')[0];
+            fireEvent.click(deleteButton);
+            const deleteShowButton = queryByText('Delete Show');
+            fireEvent.click(deleteShowButton);
+            expect(apiCalls.deleteShow).toHaveBeenCalledWith(10);
+        });
+
+        it('hides modal after successful deleteShow api call', async () => {
+            apiCalls.loadShows = jest.fn().mockResolvedValue(mockSuccessGetShowsFirstOfMultiPage);
+            apiCalls.loadNewShowsCount = jest.fn().mockResolvedValue({ data: { count: 1 }});
+            apiCalls.deleteShow = jest.fn().mockResolvedValue({});
+            const { container, queryByText, queryByTestId } = setup();
+            await waitForDomChange();
+            const deleteButton = container.querySelectorAll('button')[0];
+            fireEvent.click(deleteButton);
+            const deleteShowButton = queryByText('Delete Show');
+            fireEvent.click(deleteShowButton);
+            await waitForDomChange();
+            const modalRootDiv = queryByTestId('modal-root');
+            expect(modalRootDiv).not.toHaveClass('d-block show');
+        });
+
+        it('removes the deleted show from document after successful deleteShow api call', async () => {
+            apiCalls.loadShows = jest.fn().mockResolvedValue(mockSuccessGetShowsFirstOfMultiPage);
+            apiCalls.loadNewShowsCount = jest.fn().mockResolvedValue({ data: { count: 1 }});
+            apiCalls.deleteShow = jest.fn().mockResolvedValue({});
+            const { container, queryByText, queryByTestId } = setup();
+            await waitForDomChange();
+            const deleteButton = container.querySelectorAll('button')[0];
+            fireEvent.click(deleteButton);
+            const deleteShowButton = queryByText('Delete Show');
+            fireEvent.click(deleteShowButton);
+            await waitForDomChange();
+            const deletedShowContent = queryByText('This is the latest show');
+            expect(deletedShowContent).not.toBeInTheDocument();
+        });
+
+        it('disables Modal Buttons when api call in progress', async () => {
+            apiCalls.loadShows = jest.fn().mockResolvedValue(mockSuccessGetShowsFirstOfMultiPage);
+            apiCalls.loadNewShowsCount = jest.fn().mockResolvedValue({ data: { count: 1 }});
+            apiCalls.deleteShow = jest.fn().mockImplementation(() => {
+                return new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        resolve({});
+                    }, 300);
+                });
+            });
+            const { container, queryByText, queryByTestId } = setup();
+            await waitForDomChange();
+            const deleteButton = container.querySelectorAll('button')[0];
+            fireEvent.click(deleteButton);
+            const deleteShowButton = queryByText('Delete Show');
+            fireEvent.click(deleteShowButton);
+            expect(deleteShowButton).toBeDisabled();
+            expect(queryByText('Cancel')).toBeDisabled();
+        });
+
+        it('displays spinner when api call in progress', async () => {
+            apiCalls.loadShows = jest.fn().mockResolvedValue(mockSuccessGetShowsFirstOfMultiPage);
+            apiCalls.loadNewShowsCount = jest.fn().mockResolvedValue({ data: { count: 1 }});
+            apiCalls.deleteShow = jest.fn().mockImplementation(() => {
+                return new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        resolve({});
+                    }, 300);
+                });
+            });
+            const { container, queryByText } = setup();
+            await waitForDomChange();
+            const deleteButton = container.querySelectorAll('button')[0];
+            fireEvent.click(deleteButton);
+            const deleteShowButton = queryByText('Delete Show');
+            fireEvent.click(deleteShowButton);
+            const spinner = queryByText('Loading...');
+            expect(spinner).toBeInTheDocument();
+        });
+
+        it('hides spinner when api call finishes', async () => {
+            apiCalls.loadShows = jest.fn().mockResolvedValue(mockSuccessGetShowsFirstOfMultiPage);
+            apiCalls.loadNewShowsCount = jest.fn().mockResolvedValue({ data: { count: 1 }});
+            apiCalls.deleteShow = jest.fn().mockImplementation(() => {
+                return new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        resolve({});
+                    }, 300);
+                });
+            });
+            const { container, queryByText } = setup();
+            await waitForDomChange();
+            const deleteButton = container.querySelectorAll('button')[0];
+            fireEvent.click(deleteButton);
+            const deleteShowButton = queryByText('Delete Show');
+            fireEvent.click(deleteShowButton);
+            await waitForDomChange();
+            const spinner = queryByText('Loading...');
+            expect(spinner).not.toBeInTheDocument();
         });
     });
 });

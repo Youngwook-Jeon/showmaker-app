@@ -2,6 +2,27 @@ import React from 'react';
 import { render } from '@testing-library/react';
 import ShowView from './ShowView';
 import { MemoryRouter } from 'react-router-dom';
+import { Provider } from 'react-redux';
+import { createStore } from 'redux';
+import authReducer from '../redux/authReducer';
+
+const loggedInStateUser1 = {
+    id: 1,
+    username: 'user1',
+    displayName: 'display1',
+    image: 'profile1.png',
+    password: 'P4ssword',
+    isLoggedIn: true
+};
+
+const loggedInStateUser2 = {
+    id: 2,
+    username: 'user2',
+    displayName: 'display2',
+    image: 'profile2.png',
+    password: 'P4ssword',
+    isLoggedIn: true
+};
 
 const showWithoutAttachment = {
     id: 10,
@@ -44,15 +65,19 @@ const showWithPdfAttachment = {
     }
 };
 
-const setup = (show = showWithoutAttachment) => {
+const setup = (show = showWithoutAttachment, state = loggedInStateUser1) => {
     const oneMinute = 60 * 1000;
     const date = new Date(new Date() - oneMinute);
     show.date = date;
+    const store = createStore(authReducer, state);
+
     return render(
-        <MemoryRouter>
-            <ShowView show={show} />
-        </MemoryRouter>
-    ); 
+        <Provider store={store}>
+            <MemoryRouter>
+                <ShowView show={show}/>
+            </MemoryRouter>
+        </Provider>
+    );
 };
 
 describe('ShowView', () => {
@@ -102,6 +127,16 @@ describe('ShowView', () => {
             const attachmentImage = images[1];
             expect(attachmentImage.src).toContain('/images/attachments/' + 
                 showWithAttachment.attachment.name);
+        });
+
+        it('displays delete button when show owned by logged in user', () => {
+            const { container } = setup();
+            expect(container.querySelector('button')).toBeInTheDocument();
+        });
+
+        it('does not display delete button when show is not owned by logged in user', () => {
+            const { container } = setup(showWithoutAttachment, loggedInStateUser2);
+            expect(container.querySelector('button')).not.toBeInTheDocument();
         });
     });
 });

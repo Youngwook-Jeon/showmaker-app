@@ -260,7 +260,7 @@ describe('UserPage', () => {
 
             const saveButton = queryByText('Save');
             fireEvent.click(saveButton);
-            const spinner = queryByText('Now Loading...');
+            const spinner = queryByText('Loading...');
             expect(spinner).toBeInTheDocument();
         });
 
