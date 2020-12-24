@@ -171,9 +171,9 @@ describe('App', () => {
         const { queryByPlaceholderText, container, queryByText } = setup('/login');
         
         const usernameInput = queryByPlaceholderText('Your username');
-        fireEvent.click(usernameInput, changeEvent('user1'));
+        fireEvent.change(usernameInput, changeEvent('user1'));
         const passwordInput = queryByPlaceholderText('Your password');
-        fireEvent.click(passwordInput, changeEvent('P4ssword'));
+        fireEvent.change(passwordInput, changeEvent('P4ssword'));
         const button = container.querySelector('button');
         axios.post = jest.fn().mockResolvedValue({
             data: {
@@ -224,9 +224,9 @@ describe('App', () => {
         const { queryByPlaceholderText, container, queryByText, findByText } = setup('/login');
         
         const usernameInput = queryByPlaceholderText('Your username');
-        fireEvent.click(usernameInput, changeEvent('user1'));
+        fireEvent.change(usernameInput, changeEvent('user1'));
         const passwordInput = queryByPlaceholderText('Your password');
-        fireEvent.click(passwordInput, changeEvent('P4ssword'));
+        fireEvent.change(passwordInput, changeEvent('P4ssword'));
         const button = container.querySelector('button');
         axios.post = jest.fn().mockResolvedValue({
             data: {
@@ -262,9 +262,9 @@ describe('App', () => {
         const { queryByPlaceholderText, container, queryByText, findByText } = setup('/login');
         
         const usernameInput = queryByPlaceholderText('Your username');
-        fireEvent.click(usernameInput, changeEvent('user1'));
+        fireEvent.change(usernameInput, changeEvent('user1'));
         const passwordInput = queryByPlaceholderText('Your password');
-        fireEvent.click(passwordInput, changeEvent('P4ssword'));
+        fireEvent.change(passwordInput, changeEvent('P4ssword'));
         const button = container.querySelector('button');
         axios.post = jest.fn().mockResolvedValue({
             data: {
